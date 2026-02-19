@@ -51,9 +51,14 @@ export function analyzeCircuit(
   });
 
   // Check if any switch/breaker is open — break that path
-  const switchOpen = components.some(
-    c => (c.type === "switch" || c.type === "breaker") && c.isOn === false
+  const switchOpen = components.some(c => {
+  if ((c.type !== "switch" && c.type !== "breaker") || c.isOn !== false) return false;
+  // Verificar si este switch tiene wires conectados
+  const isConnected = wires.some(
+    w => w.fromCompId === c.id || w.toCompId === c.id
   );
+  return isConnected;
+}); 
 
   // Find batteries
   const batteries = components.filter(c => c.type === "battery");

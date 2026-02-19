@@ -42,4 +42,5 @@ export interface CircuitAnalysis {
     current: number;
     power: number;
   }[];
+  shortCircuit?: boolean;
 }
