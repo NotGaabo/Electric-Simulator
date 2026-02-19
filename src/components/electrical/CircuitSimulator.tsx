@@ -321,7 +321,7 @@ export default function CircuitSimulator() {
                         ? "#4ade80"
                         : hasWire
                           ? (active ? "#f59e0b" : "#475569")
-                          : "rgba(96,165,250,0.2)",
+                          : "rgba(22, 121, 243, 0.2)",
                       border: `2px solid ${isPending ? "#4ade80" : hasWire ? (active ? "#f59e0b" : "#64748b") : "#60a5fa"}`,
                       cursor: "crosshair",
                       zIndex: 20,
@@ -356,7 +356,7 @@ export default function CircuitSimulator() {
               fontSize: 32,
             }}>⚡</div>
             <p style={{
-              color: "#1e293b", fontSize: 13, textAlign: "center",
+              color: "#9ea2a8", fontSize: 13, textAlign: "center",
               maxWidth: 280, lineHeight: 1.6,
             }}>
               Arrastra componentes del panel izquierdo.<br/>
@@ -407,7 +407,7 @@ export default function CircuitSimulator() {
       }}>
         {/* Circuit analysis */}
         <div style={{ padding: "14px", borderBottom: "1px solid #1e293b" }}>
-          <div style={{ fontSize: 9, color: "#64748b", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 10 }}>
+          <div style={{ fontSize: 9, color: "#979ca4", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 10 }}>
             Análisis de Circuito
           </div>
           {[
@@ -430,7 +430,7 @@ export default function CircuitSimulator() {
 
         {/* Formulas */}
         <div style={{ padding: "12px 14px", borderBottom: "1px solid #1e293b" }}>
-          <div style={{ fontSize: 8, color: "#1e293b", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>
+          <div style={{ fontSize: 8, color: "#8a8d96", letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 6 }}>
             Fórmulas Aplicadas
           </div>
           {["V = I · R", "P = V · I", "R_s = ΣR", "1/R_p = Σ(1/R)"].map(f => (
