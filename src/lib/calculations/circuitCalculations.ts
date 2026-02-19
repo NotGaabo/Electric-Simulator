@@ -81,13 +81,49 @@ export function analyzeCircuit(
 
   const totalVoltage = sources.reduce((sum, s) => sum + (s.voltage || 0), 0);
 
+  // ⚡ Detect direct short circuit (battery without load)
+  if (loads.length === 0 && connections.length > 0) {
+    return {
+      totalVoltage,
+      totalCurrent: Infinity,
+      totalResistance: 0,
+      totalPower: Infinity,
+      components: symbols.map((s) => ({
+        id: s.id,
+        voltage: 0,
+        current: 0,
+        power: 0,
+      })),
+      shortCircuit: true,
+    };
+  }
+
+
   // Simple series circuit assumption for now
   const resistances = loads
     .map((s) => s.resistance || defaultResistance(s))
     .filter((r) => r > 0);
 
   const totalResistance =
-    resistances.length > 0 ? seriesResistance(resistances) : 1;
+    resistances.length > 0 ? seriesResistance(resistances) : 0;
+
+    if (totalResistance === 0) {
+      console.log("ERRORRRRR")
+      return {
+        totalVoltage,
+        totalCurrent: Infinity,
+        totalResistance: 0,
+        totalPower: Infinity,
+        components: symbols.map((s) => ({
+          id: s.id,
+          voltage: 0,
+          current: 0,
+          power: 0,
+        })),
+        shortCircuit: true,
+      };
+  }
+
   const totalCurrent = totalVoltage / totalResistance;
   const totalPower = calculatePower(totalVoltage, totalCurrent);
 

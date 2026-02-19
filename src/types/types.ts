@@ -43,4 +43,5 @@ export interface AnalysisResult {
   totalPower: number;
   compValues: Record<string, { v: number; i: number; p: number }>;
   circuitClosed: boolean;
+  shortCircuit?: boolean;
 }
