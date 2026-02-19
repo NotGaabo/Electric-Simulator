@@ -71,7 +71,7 @@ export default function CircuitSimulator() {
         }}>
           <div style={{ padding: "14px 14px 8px", borderBottom: "1px solid #1e293b" }}>
             <div style={{ fontSize: 10, color: "#4ade80", letterSpacing: "0.15em", marginBottom: 2 }}>⚡ ELECTRIC SIMULATOR</div>
-            <div style={{ fontSize: 8, color: "#334155" }}>IEC 60617 · Arrastra → Lienzo</div>
+            <div style={{ fontSize: 8, color: "#58677b" }}>IEC 60617 · Arrastra → Lienzo</div>
           </div>
   
           {["Fuentes","Cargas","Control","Protección"].map(cat => {
@@ -79,7 +79,7 @@ export default function CircuitSimulator() {
             if (!items.length) return null;
             return (
               <div key={cat}>
-                <div style={{ padding: "10px 14px 4px", fontSize: 8, color: "#475569", textTransform: "uppercase", letterSpacing: "0.1em" }}>{cat}</div>
+                <div style={{ padding: "10px 14px 4px", fontSize: 8, color: "#6a7d95", textTransform: "uppercase", letterSpacing: "0.1em" }}>{cat}</div>
                 {items.map(item => (
                   <div key={item.type}
                     draggable
@@ -383,9 +383,9 @@ export default function CircuitSimulator() {
           display: "flex", flexDirection: "column", gap: 6,
         }}>
           <div style={{
-            background: analysis.circuitClosed ? "rgba(74,222,128,0.12)" : "rgba(100,116,139,0.1)",
+            background: analysis.circuitClosed ? "rgba(74,222,128,0.12)" : "rgba(149, 172, 204, 0.1)",
             border: `1px solid ${analysis.circuitClosed ? "rgba(74,222,128,0.4)" : "#1e293b"}`,
-            color: analysis.circuitClosed ? "#4ade80" : "#334155",
+            color: analysis.circuitClosed ? "#4ade80" : "#637ca2",
             fontSize: 10, padding: "4px 12px", borderRadius: 6,
             display: "flex", alignItems: "center", gap: 6,
           }}>
@@ -406,7 +406,7 @@ export default function CircuitSimulator() {
         display: "flex", flexDirection: "column", overflowY: "auto", flexShrink: 0,
       }}>
         {/* Circuit analysis */}
-        <div style={{ padding: "14px", borderBottom: "1px solid #1e293b" }}>
+        <div style={{ padding: "14px", borderBottom: "1px solid #3b4a60" }}>
           <div style={{ fontSize: 9, color: "#979ca4", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 10 }}>
             Análisis de Circuito
           </div>
@@ -420,7 +420,7 @@ export default function CircuitSimulator() {
               display: "flex", justifyContent: "space-between", alignItems: "center",
               padding: "5px 0", borderBottom: "1px solid #0f172a",
             }}>
-              <span style={{ fontSize: 10, color: "#475569" }}>{row.label}</span>
+              <span style={{ fontSize: 10, color: "#58677b" }}>{row.label}</span>
               <span style={{ fontSize: 12, fontWeight: "bold", color: row.color }}>
                 {row.value}<span style={{ fontSize: 8, marginLeft: 2, opacity: 0.6 }}>{row.unit}</span>
               </span>
@@ -434,7 +434,7 @@ export default function CircuitSimulator() {
             Fórmulas Aplicadas
           </div>
           {["V = I · R", "P = V · I", "R_s = ΣR", "1/R_p = Σ(1/R)"].map(f => (
-            <div key={f} style={{ fontSize: 10, color: "#334155", fontFamily: "'Courier New', monospace", padding: "2px 0" }}>
+            <div key={f} style={{ fontSize: 10, color: "#58677b", fontFamily: "'Courier New', monospace", padding: "2px 0" }}>
               {f}
             </div>
           ))}
@@ -517,7 +517,7 @@ export default function CircuitSimulator() {
             )}
           </div>
         ) : (
-          <div style={{ padding: "14px", fontSize: 10, color: "#1e293b", lineHeight: 1.6 }}>
+          <div style={{ padding: "14px", fontSize: 10, color: "#58677b", lineHeight: 1.6 }}>
             Selecciona un componente para ver y editar sus propiedades
           </div>
         )}
@@ -528,7 +528,7 @@ export default function CircuitSimulator() {
             onClick={() => clearAll()}
             style={{
               width: "100%", background: "transparent", border: "1px solid #1e293b",
-              color: "#475569", fontSize: 10, fontFamily: "monospace",
+              color: "#58677b", fontSize: 10, fontFamily: "monospace",
               padding: "6px", borderRadius: 5, cursor: "pointer",
               transition: "all 0.15s",
             }}
