@@ -1,3 +1,5 @@
+// src/hooks/useCircuitSimulator
+
 "use client";
 
 import { useState, useRef, useCallback, useMemo } from "react";

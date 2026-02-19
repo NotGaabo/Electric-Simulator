@@ -410,6 +410,22 @@ export default function CircuitSimulator() {
           <div style={{ fontSize: 9, color: "#64748b", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 10 }}>
             Análisis de Circuito
           </div>
+          {analysis.shortCircuit && (
+          <div style={{
+            background: "rgba(239,68,68,0.15)",
+            border: "1px solid #ef4444",
+            color: "#ef4444",
+            padding: "6px",
+            borderRadius: 6,
+            fontSize: 10,
+            marginBottom: 10,
+            textAlign: "center",
+            fontWeight: "bold"
+          }}>
+            ⚠ CORTOCIRCUITO DETECTADO
+          </div>
+        )}
+
           {[
             { label: "Voltaje",     value: analysis.totalVoltage.toFixed(2),     unit: "V",  color: "#fbbf24" },
             { label: "Corriente",   value: analysis.current.toFixed(3),          unit: "A",  color: "#60a5fa" },
@@ -521,6 +537,8 @@ export default function CircuitSimulator() {
             Selecciona un componente para ver y editar sus propiedades
           </div>
         )}
+
+        
 
         {/* Clear button */}
         <div style={{ marginTop: "auto", padding: "10px 14px", borderTop: "1px solid #1e293b" }}>
