@@ -48,13 +48,9 @@ export function LuminaireSVG({ active }: { active?: boolean }) {
       {/* ── Bulb glass globe ── */}
       {/* A-shape: circle top + tapered neck bottom */}
       <path
-        d="
-          M 36 8
-          a 14 14 0 1 1 -0.01 0
-          Z
-        "
+        d="M 36 8 a 14 14 0 1 1 -0.01 0 Z"
         fill="url(#bulb-grad)"
-        stroke={active ? "#fde68a" : "#94a3b8"}
+        stroke="#94a3b8"
         strokeWidth="0.8"
         opacity="0.95"
       />
