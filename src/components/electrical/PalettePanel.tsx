@@ -1,7 +1,14 @@
 
 import { CompType, Component } from "@/types/types";
 
-export const PALETTE: { type: CompType; label: string; cat: string; defaults: Partial<Component> }[] = [
+export type PaletteItem = {
+  type: CompType;
+  label: string;
+  cat: string;
+  defaults: Partial<Component>;
+};
+
+export const PALETTE: PaletteItem[] = [
   { type: "battery",   label: "Fuente DC",    cat: "Fuentes",   defaults: { voltage: 9, isOn: true }},
   { type: "luminaire", label: "Luminaria",    cat: "Cargas",    defaults: { voltage: 120, power: 60 }},
   { type: "outlet",    label: "Tomacorriente",cat: "Cargas",    defaults: { voltage: 120 }},

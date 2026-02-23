@@ -6,7 +6,7 @@ import { useState, useRef, useCallback, useMemo } from "react";
 import { CompType, Component, Port, Wire } from "@/types/types";
 import { analyzeCircuit } from "@/lib/circuit/analyzeCircuit";
 import { COMP_W, COMP_H, GRID } from "@/lib/circuit/constants";
-import { PALETTE } from "@/components/electrical/PalettePanel";
+import { PALETTE, PaletteItem } from "@/components/electrical/PalettePanel";
 
 let idCtr = 1;
 const uid = () => `c${idCtr++}`;
@@ -21,7 +21,12 @@ export function getPorts(type: CompType): Port[] {
 }
 
 
-export function useCircuitSimulator() {
+interface UseCircuitSimulatorOptions {
+  palette?: PaletteItem[];
+}
+
+export function useCircuitSimulator(options?: UseCircuitSimulatorOptions) {
+  const palette = options?.palette ?? PALETTE;
   
   const [components, setComponents] = useState<Component[]>([]);
   const [wires, setWires] = useState<Wire[]>([]);
@@ -56,7 +61,7 @@ export function useCircuitSimulator() {
     const x = snap(e.clientX - rect.left);
     const y = snap(e.clientY - rect.top);
 
-    const paletteItem = PALETTE.find(p => p.type === type);
+    const paletteItem = palette.find(p => p.type === type);
     if (!paletteItem) return;
 
     setComponents(prev => [
@@ -70,7 +75,7 @@ export function useCircuitSimulator() {
         ...paletteItem.defaults,
       },
     ]);
-  }, []);
+  }, [palette]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
     if (!pendingPort || !containerRef.current) return;

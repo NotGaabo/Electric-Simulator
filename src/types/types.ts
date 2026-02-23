@@ -6,7 +6,11 @@ export type CompType =
   | "switch"
   | "breaker"
   | "capacitor"
-  | "outlet";
+  | "outlet"
+  | "motor"
+  | "transformer"
+  | "stator"
+  | "rotor";
 
 export interface Port {
   id: string;       // e.g. "left" | "right"
@@ -26,6 +30,8 @@ export interface Component {
   resistance?: number;
   power?: number;
   isOn?: boolean;
+  ratedVoltage?: number;
+  health?: "ok" | "warning" | "fault";
 }
 
 export interface Wire {
