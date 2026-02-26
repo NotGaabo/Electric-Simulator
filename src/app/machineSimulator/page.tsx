@@ -1,135 +1,10 @@
+"use client"
+
 import { useState, useCallback, useRef } from "react";
 import { CompProps, CompType, CompDef, PlacedComp, Connection, CompatLevel, TransformerCircuit, PhysicsResult, CompatResult } from './type'
 import {GRID, COMP_W, COMP_H, COMP_DEFS} from "./constants"
+import { CompSVG, SVGCompType } from "@/components/electrical/symbols/CompSVG";
 
-// ─── Símbolos SVG ─────────────────────────────────────────────────────────────
-interface SymProps { type: CompType; active: boolean; props: CompProps; selected: boolean; }
-
-function CompSymbol({ type, active, props, selected }: SymProps) {
-  const W = 140, H = 80, MID = 40;
-  const sel = selected ? "drop-shadow(0 0 6px #3b82f6)" : "";
-
-  if (type === "source") {
-    const c = active ? "#f59e0b" : "#475569";
-    const glow = active ? `drop-shadow(0 0 5px #f59e0b88) ${sel}` : sel;
-    return (
-      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ filter: glow || undefined }}>
-        <line x1={0} y1={MID} x2={42} y2={MID} stroke={c} strokeWidth={2}/>
-        <circle cx={70} cy={MID} r={26} fill="#0a1a28" stroke={c} strokeWidth={2}/>
-        <path d="M58,40 Q61,33 64,40 Q67,47 70,40 Q73,33 76,40 Q79,47 82,40"
-          fill="none" stroke={active?"#fbbf24":"#64748b"} strokeWidth={2} strokeLinecap="round"/>
-        <line x1={96} y1={MID} x2={W} y2={MID} stroke={c} strokeWidth={2}/>
-        <text x={6}   y={MID-8} fill="#475569" fontSize={9} fontFamily="monospace">L</text>
-        <text x={W-14} y={MID-8} fill="#475569" fontSize={9} fontFamily="monospace">N</text>
-        <text x={70} y={H-3} textAnchor="middle" fill="#334155" fontSize={8} fontFamily="monospace">
-          {props.voltage??220}V / {props.frequency??60}Hz
-        </text>
-      </svg>
-    );
-  }
-
-  if (type === "transformer") {
-    const n1=props.turns1??220, n2=props.turns2??110;
-    const ratio = n2>0?(n1/n2).toFixed(2):"∞";
-    const cp = active?"#818cf8":"#475569", cs = active?"#c084fc":"#334155", ck = active?"#6366f1":"#1e293b";
-    const glow = active ? `drop-shadow(0 0 6px #818cf888) ${sel}` : sel;
-    const archP = [24,34,44,54].map(cx=>`M${cx},${MID} Q${cx+5},${MID-12} ${cx+10},${MID}`);
-    const archS = [76,87,98].map(cx=>`M${cx},${MID} Q${cx+5},${MID-12} ${cx+11},${MID}`);
-    return (
-      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ filter: glow || undefined }}>
-        <line x1={0} y1={MID} x2={24} y2={MID} stroke={cp} strokeWidth={2}/>
-        {archP.map((d,i)=><path key={i} d={d} fill="none" stroke={cp} strokeWidth={2.2}/>)}
-        <line x1={65} y1={MID-18} x2={65} y2={MID+12} stroke={ck} strokeWidth={3}/>
-        <line x1={69} y1={MID-18} x2={69} y2={MID+12} stroke={ck} strokeWidth={3}/>
-        <line x1={73} y1={MID-18} x2={73} y2={MID+12} stroke={ck} strokeWidth={3}/>
-        {archS.map((d,i)=><path key={i} d={d} fill="none" stroke={cs} strokeWidth={2.2}/>)}
-        <line x1={109} y1={MID} x2={W} y2={MID} stroke={cs} strokeWidth={2}/>
-        <circle cx={26} cy={MID-15} r={3} fill={cp}/>
-        <circle cx={78} cy={MID-15} r={3} fill={cs}/>
-        <text x={70} y={14} textAnchor="middle" fill={active?"#a5b4fc":"#334155"} fontSize={9} fontFamily="monospace">a={ratio}</text>
-        <text x={16} y={H-3} fill="#334155" fontSize={8} fontFamily="monospace">P</text>
-        <text x={W-16} y={H-3} fill="#334155" fontSize={8} fontFamily="monospace">S</text>
-        <text x={70} y={H-3} textAnchor="middle" fill="#1e3a52" fontSize={8} fontFamily="monospace">{n1}/{n2} vueltas</text>
-      </svg>
-    );
-  }
-
-  if (type === "motor") {
-    const c = active?"#34d399":"#334155";
-    const glow = active ? `drop-shadow(0 0 7px #34d39966) ${sel}` : sel;
-    return (
-      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ filter: glow || undefined }}>
-        <line x1={0} y1={MID} x2={30} y2={MID} stroke={c} strokeWidth={2}/>
-        <circle cx={70} cy={MID} r={26} fill="#0a1a28" stroke={c} strokeWidth={2.5}/>
-        <text x={70} y={MID+6} textAnchor="middle" fill={active?"#34d399":"#475569"} fontSize={18} fontWeight="bold" fontFamily="monospace">M</text>
-        {active && <path d="M60,50 Q63,46 66,50 Q69,54 72,50 Q75,46 78,50" fill="none" stroke="#34d399" strokeWidth={1.5} opacity={0.5}/>}
-        {active ? (
-          <line x1={96} y1={MID} x2={W} y2={MID} stroke="#34d399" strokeWidth={3} strokeDasharray="6 3"/>
-        ) : (
-          <line x1={96} y1={MID} x2={W} y2={MID} stroke="#1e293b" strokeWidth={2}/>
-        )}
-        {active && (
-          <circle cx={70} cy={MID} r={30} fill="none" stroke="rgba(52,211,153,0.15)" strokeWidth={4}>
-            <animateTransform attributeName="transform" type="rotate" from="0 70 40" to="360 70 40" dur="1s" repeatCount="indefinite"/>
-          </circle>
-        )}
-        <text x={70} y={H-3} textAnchor="middle" fill="#1e3a52" fontSize={8} fontFamily="monospace">
-          {props.ratedVoltage??110}V · {props.ratedPower??500}W
-        </text>
-      </svg>
-    );
-  }
-
-  if (type === "breaker") {
-    const on = props.isOn !== false;
-    const c = on?"#4ade80":"#f87171";
-    const glow = active&&on ? `drop-shadow(0 0 4px #4ade8066) ${sel}` : sel;
-    const armY = on ? MID : MID-18;
-    return (
-      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ filter: glow || undefined }}>
-        <line x1={0}  y1={MID} x2={48} y2={MID} stroke={c} strokeWidth={2}/>
-        <line x1={92} y1={MID} x2={W}  y2={MID} stroke={c} strokeWidth={2}/>
-        <circle cx={50} cy={MID} r={3.5} fill={c}/>
-        <line x1={50} y1={MID} x2={90} y2={armY} stroke={c} strokeWidth={2.5} strokeLinecap="round"/>
-        <circle cx={90} cy={MID} r={3.5} fill={c}/>
-        {!on && <polyline points="70,24 68,28 72,32 68,36 72,40" fill="none" stroke="#f87171" strokeWidth={1.5} opacity={0.6}/>}
-        <text x={70} y={H-3} textAnchor="middle" fill={c} fontSize={8} fontFamily="monospace">
-          {on?"CERRADO":"ABIERTO"} · {props.ratedCurrent??10}A
-        </text>
-      </svg>
-    );
-  }
-
-  if (type === "voltmeter") {
-    return (
-      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ filter: sel||undefined }}>
-        <line x1={0} y1={MID} x2={44} y2={MID} stroke="#7dd3fc" strokeWidth={2}/>
-        <circle cx={70} cy={MID} r={24} fill="#0a1a28" stroke="#7dd3fc" strokeWidth={2}/>
-        <text x={70} y={MID+6} textAnchor="middle" fill="#7dd3fc" fontSize={16} fontFamily="serif">V</text>
-        <line x1={94} y1={MID} x2={W} y2={MID} stroke="#7dd3fc" strokeWidth={2}/>
-        <text x={52} y={MID-10} fill="#7dd3fc" fontSize={10} fontFamily="monospace">+</text>
-        <text x={82} y={MID-10} fill="#7dd3fc" fontSize={10} fontFamily="monospace">−</text>
-        <text x={70} y={H-3} textAnchor="middle" fill="#334155" fontSize={8} fontFamily="monospace">PARALELO</text>
-      </svg>
-    );
-  }
-
-  if (type === "ammeter") {
-    return (
-      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ filter: sel||undefined }}>
-        <line x1={0} y1={MID} x2={44} y2={MID} stroke="#c084fc" strokeWidth={2}/>
-        <circle cx={70} cy={MID} r={24} fill="#0a1a28" stroke="#c084fc" strokeWidth={2}/>
-        <text x={70} y={MID+6} textAnchor="middle" fill="#c084fc" fontSize={16} fontFamily="serif">A</text>
-        <line x1={94} y1={MID} x2={W} y2={MID} stroke="#c084fc" strokeWidth={2}/>
-        <polygon points="10,37 18,40 10,43" fill="#c084fc" opacity={0.5}/>
-        <polygon points="122,37 130,40 122,43" fill="#c084fc" opacity={0.5}/>
-        <text x={70} y={H-3} textAnchor="middle" fill="#334155" fontSize={8} fontFamily="monospace">SERIE</text>
-      </svg>
-    );
-  }
-
-  return <div style={{ width:W, height:H, background:"#1e293b", borderRadius:6, display:"flex", alignItems:"center", justifyContent:"center", color:"#475569", fontSize:10 }}>{type}</div>;
-}
 
 // ─── Física ───────────────────────────────────────────────────────────────────
 function calcPhysics(circuit: TransformerCircuit): PhysicsResult | null {
@@ -533,9 +408,19 @@ export default function TransformerSimulator() {
               onMouseDown={e=>onCompMouseDown(comp.id,e)}
               style={{position:"absolute",left:comp.x-COMP_W/2,top:comp.y-COMP_H/2,
                 cursor:isDragging.current&&dragRef.current?.id===comp.id?"grabbing":"grab"}}>
-
-              <CompSymbol type={comp.type} active={isActive} props={comp.props} selected={isSelected}/>
-
+                  <div style={{ filter: isSelected ? "drop-shadow(0 0 6px #3b82f6)" : undefined }}>
+                    <CompSVG
+                      comp={{
+                        id:    comp.id,
+                        type:  comp.type as SVGCompType,  // ← importa SVGCompType desde CompSVG
+                        label: comp.label,
+                        // Aplana props al nivel raíz:
+                        ...comp.props,
+                      }}
+                      active={isActive}
+                      selected={isSelected}
+                    />
+                  </div>
               <div style={{textAlign:"center",fontSize:8,color:isSelected?"#60a5fa":"#1e3a52",marginTop:2,letterSpacing:"0.05em"}}>
                 {comp.label}
               </div>
