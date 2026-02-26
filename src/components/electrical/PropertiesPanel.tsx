@@ -1,11 +1,12 @@
 "use client";
 
 import { Component } from "@/types/types";
+import { AnalysisResult } from "@/types/types";
 import { CompSVG } from "./symbols/CompSVG";
 import { PALETTE } from "./PalettePanel";
 
 interface Props {
-  analysis: any;
+  analysis: AnalysisResult;
   selectedComp?: Component;
   updateComp: (id: string, updates: Partial<Component>) => void;
   clearAll: () => void;
