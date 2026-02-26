@@ -1,36 +1,127 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ⚡ Electric Simulator
 
-## Getting Started
+> Simulador interactivo de circuitos eléctricos desarrollado con Next.js, React y TypeScript.
 
-First, run the development server:
+Electric Simulator es una aplicación web moderna diseñada para visualizar, crear y experimentar con circuitos eléctricos de forma intuitiva. El objetivo es ofrecer una herramienta educativa e interactiva para comprender mejor los principios básicos de la electricidad.
+
+---
+
+## 🚀 Características
+
+- ⚡ Simulación visual de componentes eléctricos
+- 🧩 Sistema de nodos interactivos
+- 🎯 Diseño basado en cuadrícula (snap to grid)
+- 🧠 Arquitectura escalable y modular
+- 💾 Manejo de estado global con Zustand
+- 🎨 Interfaz moderna con Tailwind CSS
+- 🔒 Tipado estricto con TypeScript
+
+---
+
+## 🛠️ Tecnologías Utilizadas
+
+- **Next.js** – Framework React para aplicaciones modernas
+- **React** – Biblioteca para interfaces dinámicas
+- **TypeScript** – Tipado estático
+- **Zustand** – Manejo de estado global
+- **Tailwind CSS** – Estilos rápidos y responsivos
+- **UUID** – Generación de identificadores únicos
+
+---
+
+## 📦 Instalación
+
+Clona el repositorio:
+
+```bash
+git clone https://github.com/NotGaabo/Electric-Simulator.git
+cd Electric-Simulator
+```
+
+Instala las dependencias:
+
+```bash
+npm install
+```
+
+Inicia el servidor de desarrollo:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abre en tu navegador:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## 📁 Estructura del Proyecto
 
-To learn more about Next.js, take a look at the following resources:
+```
+Electric-Simulator/
+│
+├── public/                  # Recursos estáticos
+├── src/
+│   ├── app/                 # Rutas y layout principal (Next.js App Router)
+│   ├── components/
+│   │   └── electrical/      # Componentes del simulador eléctrico
+│   ├── store/               # Estado global (Zustand)
+│   ├── types/               # Tipos TypeScript
+│   └── styles/              # Estilos globales
+│
+├── package.json
+├── tailwind.config.js
+└── tsconfig.json
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🧠 Cómo Funciona
 
-## Deploy on Vercel
+El simulador utiliza:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Un sistema de nodos eléctricos renderizados dinámicamente.
+- Un grid con alineación automática para organizar los componentes.
+- Un estado global centralizado para manejar proyectos y elementos del circuito.
+- Componentes reutilizables para representar símbolos eléctricos.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## 📜 Scripts Disponibles
+
+| Comando | Descripción |
+|----------|------------|
+| `npm run dev` | Ejecuta en modo desarrollo |
+| `npm run build` | Construye la app para producción |
+| `npm run start` | Ejecuta versión producción |
+| `npm run lint` | Revisión de código |
+
+---
+
+## 🎯 Objetivo del Proyecto
+
+Este proyecto busca:
+
+- Facilitar el aprendizaje de electricidad
+- Permitir experimentar visualmente con circuitos
+- Servir como base para futuras simulaciones más avanzadas
+
+---
+
+## 🚀 Mejoras Futuras
+
+- 🔌 Simulación real de corriente y voltaje  
+- 📊 Gráficas dinámicas  
+- 🧮 Implementación de Ley de Ohm  
+- 💾 Guardado de proyectos  
+- 🌙 Modo oscuro completo  
+
+---
+
+## 🤝 Contribuciones
+
+Las contribuciones son bienvenidas.  
+Puedes abrir un issue o enviar un Pull Request.
