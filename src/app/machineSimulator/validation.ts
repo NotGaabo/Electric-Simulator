@@ -1,6 +1,6 @@
 import { PlacedComp, CompatResult, CompatLevel, CompType, Connection } from "./type"; 
 
-function checkCompatibility(placed: PlacedComp[]): CompatResult {
+export function checkCompatibility(placed: PlacedComp[]): CompatResult {
   const msgs: string[] = [];
   let level: CompatLevel = "ok";
 
@@ -70,7 +70,7 @@ function checkCompatibility(placed: PlacedComp[]): CompatResult {
 }
 
 // ─── Validador de conexiones ───────────────────────────────────────────────────
-function validateCircuit(placed: PlacedComp[], connections: Connection[]): string[] {
+export function validateCircuit(placed: PlacedComp[], connections: Connection[]): string[] {
   const byType = (t:CompType) => placed.find(c=>c.type===t);
   const hasWire = (a:string,b:string) =>
     connections.some(w=>(w.from===a&&w.to===b)||(w.from===b&&w.to===a));
