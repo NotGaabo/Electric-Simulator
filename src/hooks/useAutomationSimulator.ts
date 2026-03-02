@@ -7,9 +7,9 @@ import {
   Wire,
   NodeType,
   Mode,
-} from "../engine/types";
-import { runControlCycle } from "../engine/controlEngine";
-import { TICK_INTERVAL_MS, DEFAULT_TIMER_DELAY_MS } from "../constants";
+} from "../app/sensorSimulation/engine/types";
+import { runControlCycle } from "../app/sensorSimulation/engine/controlEngine";
+import { TICK_INTERVAL_MS, DEFAULT_TIMER_DELAY_MS } from "../app/sensorSimulation/constants";
 
 let nodeCounter = 0;
 function generateId(prefix: string): string {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useAutomationSimulator } from "./hooks/useAutomationSimulator";
+import { useAutomationSimulator } from "../../hooks/useAutomationSimulator";
 import { Canvas } from "./components/Canvas";
 import { Palette } from "./components/Palette";
 import { ControlPanel } from "./components/ControlPanel";
