@@ -178,6 +178,7 @@ export default function TransformerSimulator() {
   const [connections, setConnections] = useState<Connection[]>([]);
   const [selected,    setSelected]    = useState<string | null>(null);
   const [pendingPort, setPendingPort] = useState<string | null>(null);
+  const [draggingCompId, setDraggingCompId] = useState<string | null>(null);
   const [running,     setRunning]     = useState(false);
   const [events,      setEvents]      = useState<string[]>([]);
   const [activeTab,   setActiveTab]   = useState<"analysis"|"theory"|"compat"|"log">("analysis");
@@ -244,6 +245,7 @@ export default function TransformerSimulator() {
     // Considerar drag solo si se mueve más de 4px
     if (!isDragging.current && Math.sqrt(dx*dx+dy*dy)<4) return;
     isDragging.current = true;
+    setDraggingCompId(d.id);
     setPlaced(prev=>prev.map(c=>c.id!==d.id?c:{
       ...c,
       x: Math.round((d.compX+dx)/GRID)*GRID,
@@ -253,7 +255,8 @@ export default function TransformerSimulator() {
 
   const onMouseUp = useCallback(() => {
     dragRef.current = null;
-    // isDragging.current se deja como está; se resetea en onCompMouseDown
+    isDragging.current = false;
+    setDraggingCompId(null);
   },[]);
 
   // ── Click en puerto (disponible siempre, incluso en running) ─────────────
@@ -326,6 +329,7 @@ export default function TransformerSimulator() {
   const resetAll = () => {
     setPlaced([]); setConnections([]); setSelected(null);
     setRunning(false); setEvents([]); setPendingPort(null);
+    setDraggingCompId(null);
     dragRef.current=null; isDragging.current=false;
     log("↺ Simulador reiniciado.");
   };
@@ -432,7 +436,7 @@ export default function TransformerSimulator() {
             <div key={comp.id}
               onMouseDown={e=>onCompMouseDown(comp.id,e)}
               style={{position:"absolute",left:comp.x-COMP_W/2,top:comp.y-COMP_H/2,
-                cursor:isDragging.current&&dragRef.current?.id===comp.id?"grabbing":"grab"}}>
+                cursor:draggingCompId===comp.id?"grabbing":"grab"}}>
 
               <CompSymbol type={comp.type} active={isActive} props={comp.props} selected={isSelected}/>
 

@@ -21,8 +21,12 @@ export function validateCircuit(
     reasons.push("El interruptor del circuito esta apagado.");
   }
 
-  if (!circuit.connection.hasPhase) {
-    reasons.push("Falta conexion de fase.");
+  const phaseCount = [circuit.connection.hasL1, circuit.connection.hasL2, circuit.connection.hasL3].filter(Boolean).length;
+  if (phaseCount === 0) {
+    reasons.push("Falta conexion de fase (L1, L2 o L3).");
+  }
+  if (phaseCount > 1) {
+    reasons.push("Solo se permite una fase por circuito de carga.");
   }
 
   if (!circuit.connection.hasNeutral) {

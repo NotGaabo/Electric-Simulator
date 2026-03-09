@@ -1,4 +1,15 @@
-export type EquipmentType = "LIGHT" | "AIR_CONDITIONER" | "OUTLET";
+export type PhaseBus = "L1" | "L2" | "L3";
+export type NeutralBus = "N";
+export type GroundBus = "PE";
+export type Bus = PhaseBus | NeutralBus | GroundBus;
+
+export type EquipmentType =
+  | "LIGHT"
+  | "AIR_CONDITIONER"
+  | "OUTLET"
+  | "PANEL_LED"
+  | "REFLECTOR"
+  | "INDUSTRIAL_LUMINAIRE";
 
 export type EquipmentStatus = "ON" | "OFF";
 
@@ -18,7 +29,9 @@ export interface EquipmentDefinition {
 }
 
 export interface CircuitConnection {
-  hasPhase: boolean;
+  hasL1: boolean;
+  hasL2: boolean;
+  hasL3: boolean;
   hasNeutral: boolean;
   hasGround: boolean;
 }

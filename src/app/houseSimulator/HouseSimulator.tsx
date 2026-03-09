@@ -880,7 +880,7 @@ export default function HouseSimulator() {
             <div style={{ fontSize: 8, color: U.dim, marginBottom: 7, fontFamily: "monospace" }}>NUEVO CIRCUITO</div>
             <input value={ncn} onChange={e => setNcn(e.target.value)} onKeyDown={e => e.key === "Enter" && mkCircuit()} placeholder="Ej: Luces Sala"
               style={{ width: "100%", background: "white", border: `1px solid ${U.bdr}`, borderRadius: 5, color: U.txt, fontSize: 9, padding: "5px 8px", outline: "none", boxSizing: "border-box", fontFamily: "monospace", marginBottom: 6 }}/>
-            <select value={nct} onChange={e => setNct(e.target.value as any)}
+            <select value={nct} onChange={e => setNct(e.target.value as "lighting" | "outlet" | "ground")}
               style={{ width: "100%", background: "white", border: `1px solid ${U.bdr}`, borderRadius: 5, color: U.txt, fontSize: 9, padding: "4px 6px", outline: "none", boxSizing: "border-box", fontFamily: "monospace", marginBottom: 8 }}>
               <option value="lighting">Iluminación</option>
               <option value="outlet">Tomacorrientes</option>
