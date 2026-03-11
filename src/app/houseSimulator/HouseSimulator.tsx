@@ -3,7 +3,6 @@
 import React, {
   useState, useRef, useCallback, useEffect, useMemo,
   type CSSProperties, type DragEvent, type MouseEvent as RMouseEvent,
-  type KeyboardEvent as RKeyboardEvent,
 } from "react";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -118,6 +117,7 @@ const ELEMENT_LABELS: Record<ElementType, string> = {
   fan: "Ventilador",
 };
 
+// Emojis kept only for palette sidebar and text lists
 const ELEMENT_ICONS: Record<ElementType, string> = {
   light: "💡", outlet: "🔌", switch: "🔘",
   panel_breaker: "⚡", panel_differential: "🛡️",
@@ -176,6 +176,223 @@ const INITIAL: AppState = {
   selectedElementId: null,
   viewTarget: "exterior",
 };
+
+// ─── SVG Element Icons ─────────────────────────────────────────────────────────
+
+const SVG_W = 56;
+const SVG_H = 56;
+
+function LightSVG({ active }: { active?: boolean }) {
+  const baseColor = active ? "#9ca3af" : "#64748b";
+  const baseDark  = active ? "#6b7280" : "#475569";
+  return (
+    <g>
+      <defs>
+        <radialGradient id="lb-grad" cx="38%" cy="30%" r="60%">
+          <stop offset="0%"  stopColor={active ? "#ffffff" : "#e2e8f0"} />
+          <stop offset="60%" stopColor={active ? "#fef9c3" : "#cbd5e1"} />
+          <stop offset="100%" stopColor={active ? "#fde047" : "#94a3b8"} stopOpacity="0.6" />
+        </radialGradient>
+        <linearGradient id="lb-base" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"  stopColor={baseColor} />
+          <stop offset="100%" stopColor={baseDark} />
+        </linearGradient>
+        {active && (
+          <filter id="lb-glow" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        )}
+      </defs>
+      {active && <ellipse cx="28" cy="20" rx="14" ry="14" fill="#fef08a" opacity="0.25" filter="url(#lb-glow)"/>}
+      <ellipse cx="28" cy="18" rx="12" ry="12" fill="url(#lb-grad)" stroke="#94a3b8" strokeWidth="0.8" opacity="0.95"/>
+      <path d="M 21 27 Q 20 32 22 34 L 34 34 Q 36 32 35 27 Q 32 30 28 30 Q 24 30 21 27 Z" fill="url(#lb-grad)"/>
+      <ellipse cx="24" cy="12" rx="3" ry="2.5" fill="white" opacity={active ? 0.55 : 0.3} transform="rotate(-20 24 12)"/>
+      <rect x="22" y="33" width="12" height="4" rx="1" fill="url(#lb-base)"/>
+      <rect x="22" y="37" width="12" height="2" rx="0.5" fill={baseDark} opacity="0.7"/>
+      <rect x="22.5" y="39" width="11" height="2" rx="0.5" fill={baseColor} opacity="0.6"/>
+      <rect x="23" y="41" width="10" height="1.5" rx="1" fill={baseDark} opacity="0.5"/>
+      {active && (
+        <>
+          <ellipse cx="28" cy="19" rx="6" ry="6" fill="#fef08a" opacity="0.45"/>
+          <ellipse cx="28" cy="19" rx="3" ry="3" fill="#fde047" opacity="0.7"/>
+          <path d="M 25 19 Q 26.5 16 28 19 Q 29.5 22 31 19" stroke="#fbbf24" strokeWidth="1" fill="none" strokeLinecap="round"/>
+        </>
+      )}
+    </g>
+  );
+}
+
+function OutletElementSVG({ active }: { active?: boolean }) {
+  const bodyFill    = active ? "rgba(15,23,42,0.92)" : "rgba(20,26,40,0.95)";
+  const plateStroke = active ? "#3b82f6" : "#475569";
+  const slotFill    = active ? "#0ea5e9" : "#64748b";
+  return (
+    <g>
+      <defs>
+        <linearGradient id="op-grad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%"  stopColor={active ? "#1e3a5f" : "#334155"} />
+          <stop offset="100%" stopColor={active ? "#0f1e35" : "#0f172a"} />
+        </linearGradient>
+        <filter id="op-bevel" x="-5%" y="-5%" width="110%" height="110%">
+          <feDropShadow dx="0.5" dy="1" stdDeviation="0.8" floodColor={active ? "#0284c7" : "#000"} floodOpacity="0.5"/>
+        </filter>
+      </defs>
+      <rect x="5" y="4" width="46" height="48" rx="5" fill="url(#op-grad)" stroke={plateStroke} strokeWidth="1.2" filter="url(#op-bevel)"/>
+      <rect x="5.5" y="4.5" width="45" height="47" rx="4.5" fill="none" stroke="white" strokeWidth="0.5" opacity={active ? 0.18 : 0.10}/>
+      <rect x="11" y="7" width="34" height="20" rx="9" fill={bodyFill} stroke={plateStroke} strokeWidth="0.8"/>
+      <rect x="11" y="30" width="34" height="17" rx="8" fill={bodyFill} stroke={plateStroke} strokeWidth="0.8"/>
+      <rect x="18" y="11" width="4" height="7" rx="2" fill={slotFill} opacity={active ? 1 : 0.75}/>
+      <rect x="34" y="10.5" width="4" height="8" rx="2" fill={slotFill} opacity={active ? 1 : 0.75}/>
+      <path d="M25 22 A3 3 0 0 1 31 22 L31 25 A3 3 0 0 1 25 25 Z" fill={slotFill} opacity={active ? 1 : 0.7}/>
+      <rect x="18" y="33" width="4" height="7" rx="2" fill={slotFill} opacity={active ? 1 : 0.75}/>
+      <rect x="34" y="33" width="4" height="8" rx="2" fill={slotFill} opacity={active ? 1 : 0.75}/>
+      <circle cx="28" cy="27.5" r="1.5" fill={active ? "#1e3a5f" : "#1e293b"} stroke={plateStroke} strokeWidth="0.6"/>
+      {active && <rect x="5" y="4" width="46" height="48" rx="5" fill="none" stroke="#3b82f6" strokeWidth="1.5" opacity="0.35"/>}
+    </g>
+  );
+}
+
+function SwitchElementSVG({ active, isOn }: { active?: boolean; isOn?: boolean }) {
+  const c    = active ? "#4ade80" : "#94a3b8";
+  const armY = isOn !== false ? 28 : 16;
+  return (
+    <g>
+      <circle cx="8"  cy="28" r="4" fill={c}/>
+      <circle cx="48" cy="28" r="4" fill={c}/>
+      <line x1="0"  y1="28" x2="8"  y2="28" stroke={c} strokeWidth="2.5"/>
+      <line x1="48" y1="28" x2="56" y2="28" stroke={c} strokeWidth="2.5"/>
+      <line x1="8" y1="28" x2="46" y2={armY} stroke={isOn !== false ? c : "#f87171"} strokeWidth="2.5" strokeLinecap="round"/>
+      <text x="18" y={isOn !== false ? "46" : "48"} fontSize="7" fill={isOn !== false ? "#4ade80" : "#f87171"} fontFamily="monospace">
+        {isOn !== false ? "ON" : "OFF"}
+      </text>
+    </g>
+  );
+}
+
+function BreakerElementSVG({ active, isOn }: { active?: boolean; isOn?: boolean }) {
+  const c = active ? "#4ade80" : "#94a3b8";
+  return (
+    <g>
+      <line x1="0"  y1="28" x2="10" y2="28" stroke={c} strokeWidth="2.5"/>
+      <line x1="46" y1="28" x2="56" y2="28" stroke={c} strokeWidth="2.5"/>
+      <rect x="10" y="12" width="36" height="32" rx="4" stroke={c} strokeWidth="2" fill="rgba(15,23,42,0.9)"/>
+      <rect x="20" y={isOn !== false ? "14" : "26"} width="16" height="12" rx="3" fill={isOn !== false ? "#4ade80" : "#ef4444"}/>
+      <text x="14" y="50" fontSize="7" fill={isOn !== false ? "#4ade80" : "#ef4444"} fontFamily="monospace">
+        {isOn !== false ? "ON" : "OFF"}
+      </text>
+    </g>
+  );
+}
+
+function DifferentialSVG({ active }: { active?: boolean }) {
+  const c      = active ? "#4ade80" : "#94a3b8";
+  const accent = active ? "#a78bfa" : "#64748b";
+  return (
+    <g>
+      <line x1="0"  y1="28" x2="10" y2="28" stroke={c} strokeWidth="2.5"/>
+      <line x1="46" y1="28" x2="56" y2="28" stroke={c} strokeWidth="2.5"/>
+      <rect x="10" y="10" width="36" height="36" rx="4" stroke={c} strokeWidth="2" fill="rgba(15,23,42,0.9)"/>
+      <circle cx="28" cy="24" r="7" fill="none" stroke={accent} strokeWidth="2"/>
+      <text x="25" y="28" fontSize="8" fill={accent} fontFamily="monospace">Δ</text>
+      <rect x="20" y="33" width="16" height="5" rx="2" fill={active ? "#4ade80" : "#334155"}/>
+    </g>
+  );
+}
+
+function GroundRodSVG({ active }: { active?: boolean }) {
+  const c = active ? "#4ade80" : "#94a3b8";
+  return (
+    <g>
+      <line x1="28" y1="4"  x2="28" y2="36" stroke={c} strokeWidth="2.5" strokeLinecap="round"/>
+      <line x1="14" y1="36" x2="42" y2="36" stroke={c} strokeWidth="3"   strokeLinecap="round"/>
+      <line x1="18" y1="42" x2="38" y2="42" stroke={c} strokeWidth="2.5" strokeLinecap="round" opacity="0.7"/>
+      <line x1="22" y1="48" x2="34" y2="48" stroke={c} strokeWidth="2"   strokeLinecap="round" opacity="0.45"/>
+    </g>
+  );
+}
+
+function ConduitPVCSVG({ active }: { active?: boolean }) {
+  const c = active ? "#60a5fa" : "#64748b";
+  return (
+    <g>
+      <rect x="4" y="22" width="48" height="12" rx="6" fill="none" stroke={c} strokeWidth="2.5"/>
+      <line x1="10" y1="28" x2="46" y2="28" stroke={c} strokeWidth="1" strokeDasharray="4 3" opacity="0.5"/>
+      <text x="14" y="50" fontSize="7" fill={c} fontFamily="monospace">PVC</text>
+    </g>
+  );
+}
+
+function ConduitEMTSVG({ active }: { active?: boolean }) {
+  const c = active ? "#fbbf24" : "#64748b";
+  return (
+    <g>
+      <rect x="4" y="22" width="48" height="12" rx="2" fill="none" stroke={c} strokeWidth="2.5"/>
+      <line x1="10" y1="25" x2="46" y2="25" stroke={c} strokeWidth="1" opacity="0.4"/>
+      <line x1="10" y1="31" x2="46" y2="31" stroke={c} strokeWidth="1" opacity="0.4"/>
+      <text x="14" y="50" fontSize="7" fill={c} fontFamily="monospace">EMT</text>
+    </g>
+  );
+}
+
+function CableTravSVG({ active }: { active?: boolean }) {
+  const c = active ? "#a78bfa" : "#64748b";
+  return (
+    <g>
+      <rect x="4" y="20" width="48" height="16" rx="1" fill="none" stroke={c} strokeWidth="2"/>
+      {[12, 20, 28, 36, 44].map(x => (
+        <line key={x} x1={x} y1="20" x2={x} y2="36" stroke={c} strokeWidth="1" opacity="0.5"/>
+      ))}
+    </g>
+  );
+}
+
+function SmokeDetectorSVG({ active }: { active?: boolean }) {
+  const c    = active ? "#f87171" : "#94a3b8";
+  const ring = active ? "#ef4444" : "#475569";
+  return (
+    <g>
+      {active && <circle cx="28" cy="26" r="20" fill="#ef444422"/>}
+      <circle cx="28" cy="26" r="16" fill="rgba(15,23,42,0.9)" stroke={ring} strokeWidth="2"/>
+      <circle cx="28" cy="26" r="10" fill="none" stroke={c} strokeWidth="1.5" strokeDasharray="3 2"/>
+      <circle cx="28" cy="26" r="4"  fill={active ? "#ef4444" : "#334155"}/>
+      <text x="14" y="50" fontSize="7" fill={c} fontFamily="monospace">HUMO</text>
+    </g>
+  );
+}
+
+function FanSVG({ active }: { active?: boolean }) {
+  const c = active ? "#4ade80" : "#94a3b8";
+  return (
+    <g>
+      <style>{`@keyframes hspin { from { transform-origin: 28px 26px; transform: rotate(0deg); } to { transform-origin: 28px 26px; transform: rotate(360deg); } }`}</style>
+      <g style={active ? { animation: "hspin 0.6s linear infinite" } : {}}>
+        <path d="M28 26 Q28 14 36 10 Q42 8 38 18 Q34 24 28 26Z" fill={c} opacity="0.85"/>
+        <path d="M28 26 Q40 26 44 34 Q46 40 36 36 Q30 32 28 26Z" fill={c} opacity="0.85"/>
+        <path d="M28 26 Q16 26 12 18 Q10 12 20 16 Q26 20 28 26Z" fill={c} opacity="0.85"/>
+        <path d="M28 26 Q28 38 20 42 Q14 44 18 34 Q22 28 28 26Z" fill={c} opacity="0.85"/>
+      </g>
+      <circle cx="28" cy="26" r="4" fill="rgba(15,23,42,0.9)" stroke={c} strokeWidth="1.5"/>
+    </g>
+  );
+}
+
+function ElementSVG({ type, active, isOn }: { type: ElementType; active?: boolean; isOn?: boolean }) {
+  switch (type) {
+    case "light":              return <LightSVG active={active}/>;
+    case "outlet":             return <OutletElementSVG active={active}/>;
+    case "switch":             return <SwitchElementSVG active={active} isOn={isOn}/>;
+    case "panel_breaker":      return <BreakerElementSVG active={active} isOn={isOn}/>;
+    case "panel_differential": return <DifferentialSVG active={active}/>;
+    case "ground_rod":         return <GroundRodSVG active={active}/>;
+    case "conduit_pvc":        return <ConduitPVCSVG active={active}/>;
+    case "conduit_emt":        return <ConduitEMTSVG active={active}/>;
+    case "cable_tray":         return <CableTravSVG active={active}/>;
+    case "smoke_detector":     return <SmokeDetectorSVG active={active}/>;
+    case "fan":                return <FanSVG active={active}/>;
+    default:                   return null;
+  }
+}
 
 // ─── Geometry ──────────────────────────────────────────────────────────────────
 
@@ -251,7 +468,6 @@ function validateInstallation(state: AppState): ValidationError[] {
   );
   const grounds  = elements.filter(e => e.type === "ground_rod");
 
-  // RF-06
   if (lights.length === 0)
     mkErr("error","RF-06","Sin luminarias","No hay luminarias instaladas.","Arrastra luminarias a las habitaciones.");
   if (outlets.length === 0)
@@ -261,7 +477,6 @@ function validateInstallation(state: AppState): ValidationError[] {
       mkErr("warning","RF-06",`${r.name} sin iluminación`,`"${r.name}" no tiene luminaria.`,`Coloca una luminaria en ${r.name}.`);
   });
 
-  // RF-07
   if (breakers.length === 0)
     mkErr("error","RF-07","Sin termomagnéticos","No hay interruptores termomagnéticos.","Agrega al menos un termomagnético.");
   if (diffs.length === 0)
@@ -271,11 +486,9 @@ function validateInstallation(state: AppState): ValidationError[] {
       mkErr("warning","RF-07","Circuito sin protección",`"${c.name}" sin termomagnético.`,"Asigna un interruptor al circuito.");
   });
 
-  // RF-08
   if (conduits.length === 0 && elements.length > 4)
     mkErr("warning","RF-08","Sin canalización","No hay tuberías ni canaletas.","Agrega tubería PVC, EMT o canaletas.");
 
-  // RF-09
   if (grounds.length === 0)
     mkErr("error","RF-09","Sin puesta a tierra","No hay varilla de tierra instalada.","Instala una varilla de tierra.");
   outlets.forEach(o => {
@@ -283,7 +496,6 @@ function validateInstallation(state: AppState): ValidationError[] {
       mkErr("warning","RF-09","Tomacorriente sin tierra",`"${o.label}" sin conexión a tierra.`,"Conecta conductor de tierra.");
   });
 
-  // RF-10
   if (lights.length > 0 && !circuits.some(c => c.type === "lighting"))
     mkErr("info","RF-10","Sin circuito de iluminación","Luminarias sin circuito asignado.","Crea un circuito de iluminación.");
   if (outlets.length > 0 && !circuits.some(c => c.type === "outlet"))
@@ -295,9 +507,9 @@ function validateInstallation(state: AppState): ValidationError[] {
 function getScore(errors: ValidationError[]): number {
   let s = 100;
   errors.forEach(e => {
-    if (e.severity === "error")   s -= 15;
+    if (e.severity === "error")        s -= 15;
     else if (e.severity === "warning") s -= 7;
-    else s -= 3;
+    else                               s -= 3;
   });
   return Math.max(0, s);
 }
@@ -394,7 +606,7 @@ function ValidationPanel({ errors, score }: ValidationPanelProps) {
   );
 }
 
-// ─── Multimeter / Test Tool (RF-10) ────────────────────────────────────────────
+// ─── Multimeter Panel (RF-10) ──────────────────────────────────────────────────
 
 interface MultimeterPanelProps {
   selEl: ElectricalElement;
@@ -404,29 +616,29 @@ interface MultimeterPanelProps {
 }
 
 function MultimeterPanel({ selEl, elements, wires, circuits }: MultimeterPanelProps) {
-  const powered = isPowered(selEl, elements, wires, circuits);
-  const c = circuits.find(c => c.id === selEl.circuitId) ?? null;
+  const powered  = isPowered(selEl, elements, wires, circuits);
+  const c        = circuits.find(c => c.id === selEl.circuitId) ?? null;
   const breakerEl = c?.breakerId ? elements.find(e => e.id === c.breakerId) ?? null : null;
   const connWires = wires.filter(w => w.fromElementId === selEl.id || w.toElementId === selEl.id);
   const hasGround = selEl.isGrounded || connWires.some(w => w.isGroundWire);
 
   const rows: Array<{ label: string; val: string; ok: boolean }> = [
-    { label: "Voltaje",     val: powered ? "120 V" : "0 V",                       ok: powered },
-    { label: "Continuidad", val: connWires.length > 0 ? "OK" : "Abierto",         ok: connWires.length > 0 },
-    { label: "Tierra",      val: hasGround ? "✓ Conectada" : "✗ Ausente",         ok: hasGround },
-    { label: "Polaridad",   val: c ? "Correcta" : "N/A",                          ok: !!c },
-    { label: "Circuito",    val: c?.name ?? "Sin asignar",                         ok: !!c },
-    { label: "Protección",  val: breakerEl ? `${breakerEl.rating ?? 20}A` : "Sin breaker", ok: !!breakerEl },
+    { label:"Voltaje",     val:powered ? "120 V" : "0 V",                              ok:powered },
+    { label:"Continuidad", val:connWires.length > 0 ? "OK" : "Abierto",               ok:connWires.length > 0 },
+    { label:"Tierra",      val:hasGround ? "✓ Conectada" : "✗ Ausente",               ok:hasGround },
+    { label:"Polaridad",   val:c ? "Correcta" : "N/A",                                ok:!!c },
+    { label:"Circuito",    val:c?.name ?? "Sin asignar",                               ok:!!c },
+    { label:"Protección",  val:breakerEl ? `${breakerEl.rating ?? 20}A` : "Sin breaker", ok:!!breakerEl },
   ];
 
   return (
-    <div style={{ background:"rgba(4,8,14,0.95)", border:"1px solid #1e3050", borderRadius:10, padding:12, marginTop:8, fontFamily:"monospace" }}>
-      <div style={{ fontSize:8, color:"#3a5070", marginBottom:8, letterSpacing:"0.15em" }}>🔬 PRUEBAS RF-10</div>
+    <div style={{ background:"rgba(4,8,14,0.95)", border:"1px solid #1e293b", borderRadius:10, padding:12, marginTop:8 }}>
+      <div style={{ fontSize:8, color:"#58677b", marginBottom:8, letterSpacing:"0.15em", textTransform:"uppercase" }}>🔬 Pruebas RF-10</div>
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:5 }}>
         {rows.map(item => (
-          <div key={item.label} style={{ background:item.ok?"rgba(34,197,94,0.06)":"rgba(239,68,68,0.06)", border:`1px solid ${item.ok?"rgba(34,197,94,0.3)":"rgba(239,68,68,0.2)"}`, borderRadius:5, padding:"5px 8px" }}>
+          <div key={item.label} style={{ background:item.ok?"rgba(74,222,128,0.06)":"rgba(239,68,68,0.06)", border:`1px solid ${item.ok?"rgba(74,222,128,0.3)":"rgba(239,68,68,0.2)"}`, borderRadius:5, padding:"5px 8px" }}>
             <div style={{ fontSize:7, color:"#3a5070", marginBottom:1 }}>{item.label}</div>
-            <div style={{ fontSize:9, color:item.ok?"#22c55e":"#ef4444", fontWeight:"bold" }}>{item.val}</div>
+            <div style={{ fontSize:9, color:item.ok?"#4ade80":"#ef4444", fontWeight:"bold" }}>{item.val}</div>
           </div>
         ))}
       </div>
@@ -444,7 +656,7 @@ interface RoomManagerProps {
 
 function RoomManager({ rooms, onClose, onSave }: RoomManagerProps) {
   const [draft, setDraft] = useState<Room[]>(() => rooms.map(r => ({ ...r })));
-  const U = { bdr:"#1e3050", txt:"#94a3b8", acc:"#4a9eff", accBg:"rgba(74,158,255,0.08)", dim:"#3a5070" };
+  const U = { bdr:"#1e293b", txt:"#94a3b8", acc:"#4a9eff", accBg:"rgba(74,158,255,0.08)", dim:"#3a5070" };
 
   const updateRoom = (id: string, patch: Partial<Room>): void =>
     setDraft(d => d.map(r => r.id === id ? { ...r, ...patch } : r));
@@ -475,7 +687,6 @@ function RoomManager({ rooms, onClose, onSave }: RoomManagerProps) {
           {draft.map(r => (
             <div key={r.id} style={{ background:"#0a1428", border:`1px solid ${U.bdr}`, borderRadius:8, padding:"10px 14px", marginBottom:8, display:"flex", gap:10, alignItems:"center", flexWrap:"wrap" }}>
               <div style={{ width:4, height:36, background:RS[r.type].lbl, borderRadius:2, flexShrink:0 }}/>
-
               <div style={{ flex:"1 1 90px" }}>
                 <div style={{ fontSize:7, color:U.dim, fontFamily:"monospace", marginBottom:2 }}>Nombre</div>
                 <input
@@ -484,7 +695,6 @@ function RoomManager({ rooms, onClose, onSave }: RoomManagerProps) {
                   style={{ width:"100%", background:"#04080e", border:`1px solid ${U.bdr}`, borderRadius:5, color:U.txt, fontSize:10, padding:"3px 6px", fontFamily:"monospace", outline:"none", boxSizing:"border-box" }}
                 />
               </div>
-
               <div style={{ flex:"1 1 80px" }}>
                 <div style={{ fontSize:7, color:U.dim, fontFamily:"monospace", marginBottom:2 }}>Tipo</div>
                 <select
@@ -495,7 +705,6 @@ function RoomManager({ rooms, onClose, onSave }: RoomManagerProps) {
                   {ROOM_TYPES.map(t => <option key={t} value={t}>{ROOM_TYPE_LABELS[t]}</option>)}
                 </select>
               </div>
-
               {(["x","y","width","height"] as const).map(field => (
                 <div key={field} style={{ flex:"0 0 52px" }}>
                   <div style={{ fontSize:7, color:U.dim, fontFamily:"monospace", marginBottom:2 }}>
@@ -509,7 +718,6 @@ function RoomManager({ rooms, onClose, onSave }: RoomManagerProps) {
                   />
                 </div>
               ))}
-
               <button
                 onClick={() => setDraft(d => d.filter(x => x.id !== r.id))}
                 style={{ background:"transparent", border:"1px solid #c0392b44", color:"#c0392b", borderRadius:6, width:26, height:26, cursor:"pointer", fontSize:13, flexShrink:0 }}
@@ -544,7 +752,7 @@ interface CrossRoomSelectorProps {
 
 function CrossRoomSelector({ fromEl, elements, rooms, circuits, onConnect, onCancel }: CrossRoomSelectorProps) {
   const [selId, setSelId] = useState<string | null>(null);
-  const U = { bdr:"#1e3050", txt:"#94a3b8", acc:"#4a9eff", accBg:"rgba(74,158,255,0.08)", dim:"#3a5070" };
+  const U = { bdr:"#1e293b", txt:"#94a3b8", acc:"#4a9eff", accBg:"rgba(74,158,255,0.08)", dim:"#3a5070" };
   const others = elements.filter(e => e.roomId && e.roomId !== fromEl.roomId && e.id !== fromEl.id);
 
   return (
@@ -824,6 +1032,9 @@ function HouseView({
 
 // ─── Room Interior View ────────────────────────────────────────────────────────
 
+// Port side type
+type PortSide = "left" | "right";
+
 interface RoomViewProps {
   room: Room;
   elements: ElectricalElement[];
@@ -831,11 +1042,12 @@ interface RoomViewProps {
   circuits: Circuit[];
   rooms: Room[];
   onDrop: (type: ElementType, x: number, y: number) => void;
-  onElementClick: (id: string, wire: boolean) => void;
+  onElementClick: (id: string) => void;
   onElementMove: (id: string, x: number, y: number) => void;
   onWireConnect: (toId: string) => void;
+  onPortClick: (elId: string, side: PortSide) => void;
   selectedElId: string | null;
-  pendingWireFrom: string | null;
+  pendingWireFrom: string | null; // format: "elId:left" | "elId:right" | null
   onCanvasClick: () => void;
   onCrossRoomWire: () => void;
   onToggle: (id: string) => void;
@@ -843,13 +1055,14 @@ interface RoomViewProps {
 
 function RoomView({
   room, elements, wires, circuits, rooms,
-  onDrop, onElementClick, onElementMove, onWireConnect,
-  selectedElId, pendingWireFrom, onCanvasClick, onCrossRoomWire,
+  onDrop, onElementClick, onElementMove,
+  onPortClick, selectedElId, pendingWireFrom,
+  onCanvasClick, onCrossRoomWire,
 }: RoomViewProps) {
-  const svgRef = useRef<SVGSVGElement>(null);
+  const svgRef  = useRef<SVGSVGElement>(null);
   const dragRef = useRef<DragRef | null>(null);
-  const [dragPos, setDragPos] = useState<DragPos | null>(null);
-  const [mouse, setMouse] = useState<{ x: number; y: number }>({ x:600, y:400 });
+  const [dragPos, setDragPos]   = useState<DragPos | null>(null);
+  const [mouse,   setMouse]     = useState<{ x: number; y: number }>({ x:600, y:400 });
 
   const activeWires = useMemo(
     () => getActiveWires(elements, wires, circuits),
@@ -886,9 +1099,24 @@ function RoomView({
     return circuits.find(c => c.id === el.circuitId)?.color ?? "#94a3b8";
   }
 
-  const pendingFromEl = pendingWireFrom ? elements.find(e => e.id === pendingWireFrom) ?? null : null;
-  const pfx = dragPos?.id === pendingWireFrom ? dragPos.x : (pendingFromEl?.x ?? 0);
-  const pfy = dragPos?.id === pendingWireFrom ? dragPos.y : (pendingFromEl?.y ?? 0);
+  // Extract elId from pendingWireFrom ("elId:side")
+  const pendingFromElId = pendingWireFrom ? pendingWireFrom.split(":")[0] : null;
+  const pendingFromEl   = pendingFromElId ? elements.find(e => e.id === pendingFromElId) ?? null : null;
+  const pendingSide     = pendingWireFrom ? (pendingWireFrom.split(":")[1] as PortSide) : null;
+
+  // Compute port pixel position for a given element + side
+  const PORT_OFFSET = 38; // px from center
+  function portXY(el: ElectricalElement, side: PortSide, overrideX?: number, overrideY?: number) {
+    const ex = overrideX ?? el.x;
+    const ey = overrideY ?? el.y;
+    return { x: side === "left" ? ex - PORT_OFFSET : ex + PORT_OFFSET, y: ey };
+  }
+
+  const pfPort = pendingFromEl && pendingSide
+    ? portXY(pendingFromEl, pendingSide,
+        dragPos?.id === pendingFromElId ? dragPos.x : undefined,
+        dragPos?.id === pendingFromElId ? dragPos.y : undefined)
+    : null;
 
   const crossWires = wires.filter(w => {
     const fe = elements.find(e => e.id === w.fromElementId);
@@ -896,6 +1124,9 @@ function RoomView({
     if (!fe || !te) return false;
     return (fe.roomId === room.id || te.roomId === room.id) && fe.roomId !== te.roomId;
   });
+
+  const ELEM_R = 28; // hit area radius for ports/selection
+  const SVG_SCALE = 1.0; // SVG rendered at native size, centered
 
   return (
     <svg
@@ -941,6 +1172,10 @@ function RoomView({
           <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
         </filter>
         <filter id="elSh"><feDropShadow dx="2" dy="4" stdDeviation="4" floodColor="#6a5030" floodOpacity="0.25"/></filter>
+        <filter id="portGlow">
+          <feGaussianBlur stdDeviation="2" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
         <marker id="wArr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
           <polygon points="0 0,8 3,0 6" fill="#f59e0b"/>
         </marker>
@@ -957,7 +1192,7 @@ function RoomView({
         {room.name.toUpperCase()}
       </text>
       <text x="600" y="54" textAnchor="middle" fontSize="7.5" fill={s.lbl} fontFamily="monospace" opacity="0.35">
-        Arrastra · Doble clic = cable · ESC = cancelar
+        Arrastra · Conecta por los puertos azules · ESC = cancelar
       </text>
 
       {/* Same-room wires */}
@@ -966,14 +1201,17 @@ function RoomView({
         const te = elements.find(e => e.id === w.toElementId);
         if (!fe || !te) return null;
         if (fe.roomId !== room.id || te.roomId !== room.id) return null;
-        const circ = circuits.find(c => c.id === w.circuitId);
-        const color = w.isGroundWire ? "#22c55e" : (circ?.color ?? "#6b7280");
+        const circ   = circuits.find(c => c.id === w.circuitId);
+        const color  = w.isGroundWire ? "#22c55e" : (circ?.color ?? "#6b7280");
         const active = activeWires.has(w.id);
         const fx = dragPos?.id === fe.id ? dragPos.x : fe.x;
         const fy = dragPos?.id === fe.id ? dragPos.y : fe.y;
         const tx = dragPos?.id === te.id ? dragPos.x : te.x;
         const ty = dragPos?.id === te.id ? dragPos.y : te.y;
-        return <AnimatedWire key={w.id} d={wirePath(fx,fy,tx,ty)} color={color} active={active} onClick={() => {}}/>;
+        // Wire connects from right port of source to left port of target (or closest)
+        const fPx = fx + ELEM_R + 10;
+        const tPx = tx - (ELEM_R + 10);
+        return <AnimatedWire key={w.id} d={wirePath(fPx,fy,tPx,ty)} color={color} active={active} onClick={() => {}}/>;
       })}
 
       {/* Cross-room wires */}
@@ -981,15 +1219,15 @@ function RoomView({
         const fe = elements.find(e => e.id === w.fromElementId);
         const te = elements.find(e => e.id === w.toElementId);
         if (!fe || !te) return null;
-        const localEl = fe.roomId === room.id ? fe : te;
+        const localEl  = fe.roomId === room.id ? fe : te;
         const remoteEl = fe.roomId === room.id ? te : fe;
         const remoteRoom = rooms.find(r => r.id === remoteEl.roomId);
         const lx = dragPos?.id === localEl.id ? dragPos.x : localEl.x;
         const ly = dragPos?.id === localEl.id ? dragPos.y : localEl.y;
-        const circ = circuits.find(c => c.id === w.circuitId);
-        const color = w.isGroundWire ? "#22c55e" : (circ?.color ?? "#6b7280");
+        const circ   = circuits.find(c => c.id === w.circuitId);
+        const color  = w.isGroundWire ? "#22c55e" : (circ?.color ?? "#6b7280");
         const active = activeWires.has(w.id);
-        const edgeX = lx < 600 ? 80 : 1120;
+        const edgeX  = lx < 600 ? 80 : 1120;
         return (
           <g key={w.id}>
             <AnimatedWire d={wirePath(lx,ly,edgeX,ly)} color={color} active={active} dashed onClick={() => {}}/>
@@ -1001,11 +1239,11 @@ function RoomView({
         );
       })}
 
-      {/* Pending wire preview */}
-      {pendingWireFrom && pendingFromEl && (
+      {/* Pending wire preview from port */}
+      {pendingWireFrom && pfPort && (
         <>
-          <path d={wirePath(pfx,pfy,mouse.x,mouse.y)} fill="none" stroke="#f59e0b" strokeWidth="2.5" strokeDasharray="12 6" opacity="0.9" markerEnd="url(#wArr)"/>
-          <circle cx={pfx} cy={pfy} r="7" fill="#f59e0b" opacity="0.2">
+          <path d={wirePath(pfPort.x, pfPort.y, mouse.x, mouse.y)} fill="none" stroke="#f59e0b" strokeWidth="2.5" strokeDasharray="12 6" opacity="0.9" markerEnd="url(#wArr)"/>
+          <circle cx={pfPort.x} cy={pfPort.y} r="7" fill="#f59e0b" opacity="0.2">
             <animate attributeName="r" values="5;15;5" dur="0.9s" repeatCount="indefinite"/>
           </circle>
           <g onClick={(e: RMouseEvent<SVGGElement>) => { e.stopPropagation(); onCrossRoomWire(); }} style={{ cursor:"pointer" }}>
@@ -1020,14 +1258,11 @@ function RoomView({
       {/* Elements */}
       {roomEls.map(el => {
         const powered = isPowered(el, elements, wires, circuits);
-        const isSel = selectedElId === el.id;
-        const isPSrc = pendingWireFrom === el.id;
-        const isTgt = !!pendingWireFrom && pendingWireFrom !== el.id;
-        const color = circColor(el);
-        const ex = dragPos?.id === el.id ? dragPos.x : el.x;
-        const ey = dragPos?.id === el.id ? dragPos.y : el.y;
-        const isDrag = dragPos?.id === el.id;
-        const R = 30;
+        const isSel   = selectedElId === el.id;
+        const color   = circColor(el);
+        const ex      = dragPos?.id === el.id ? dragPos.x : el.x;
+        const ey      = dragPos?.id === el.id ? dragPos.y : el.y;
+        const isDrag  = dragPos?.id === el.id;
 
         const hasCross = wires.some(w => {
           if (w.fromElementId !== el.id && w.toElementId !== el.id) return false;
@@ -1036,12 +1271,24 @@ function RoomView({
           return !!(fe && te && fe.roomId !== te.roomId);
         });
 
+        const leftPortId  = `${el.id}:left`;
+        const rightPortId = `${el.id}:right`;
+        const isPendingLeft  = pendingWireFrom === leftPortId;
+        const isPendingRight = pendingWireFrom === rightPortId;
+
+        // Check if ports have wires
+        const hasAnyWire = wires.some(w => w.fromElementId === el.id || w.toElementId === el.id);
+        const portActiveColor = (hasW: boolean) =>
+          hasW ? (activeWires.size > 0 ? "#f59e0b" : "#475569") : "rgba(74,158,255,0.2)";
+        const portStrokeColor = (isPending: boolean, hasW: boolean) =>
+          isPending ? "#f59e0b" : hasW ? "#64748b" : "#60a5fa";
+
         return (
           <g
             key={el.id}
             transform={`translate(${ex},${ey})`}
-            style={{ cursor: pendingWireFrom ? "crosshair" : isDrag ? "grabbing" : "grab" }}
-            filter={isSel || isPSrc || isDrag ? "url(#elSh)" : undefined}
+            style={{ cursor: isDrag ? "grabbing" : pendingWireFrom ? "default" : "grab" }}
+            filter={isSel || isDrag ? "url(#elSh)" : undefined}
             onMouseDown={(e: RMouseEvent<SVGGElement>) => {
               e.stopPropagation();
               if (pendingWireFrom) return;
@@ -1051,47 +1298,115 @@ function RoomView({
             onClick={(e: RMouseEvent<SVGGElement>) => {
               e.stopPropagation();
               if (isDrag) return;
-              if (pendingWireFrom && pendingWireFrom !== el.id) onWireConnect(el.id);
-              else onElementClick(el.id, false);
-            }}
-            onDoubleClick={(e: RMouseEvent<SVGGElement>) => {
-              e.stopPropagation();
-              onElementClick(el.id, true);
+              onElementClick(el.id);
             }}
           >
+            {/* Light pool glow */}
             {powered && el.type === "light" && (
-              <>
-                <ellipse cx={0} cy={15} rx={110} ry={65} fill="url(#lPool)" opacity="0.65" filter="url(#lglow)"/>
-                <ellipse cx={0} cy={6} rx={32} ry={20} fill="rgba(255,255,200,0.8)"/>
-              </>
+              <ellipse cx={0} cy={15} rx={110} ry={65} fill="url(#lPool)" opacity="0.55" filter="url(#lglow)"/>
             )}
-            {powered && <circle r={R+14} fill="none" stroke={color} strokeWidth="2" opacity="0.25" filter="url(#lglow)"/>}
-            <ellipse cx={0} cy={isDrag?18:8} rx={R+6} ry={(R+6)*0.4} fill="rgba(0,0,0,0.2)"/>
-            {isTgt && <circle r={R+16} fill="rgba(245,158,11,0.06)" stroke="#f59e0b" strokeWidth="2" strokeDasharray="5 3"/>}
-            {isSel && !isPSrc && <circle r={R+10} fill="none" stroke="#f59e0b" strokeWidth="2.5"/>}
-            {isPSrc && <circle r={R+11} fill="rgba(245,158,11,0.1)" stroke="#f59e0b" strokeWidth="2.5"/>}
+
+            {/* Active glow halo */}
+            {powered && (
+              <ellipse cx={0} cy={4} rx={ELEM_R+14} ry={14} fill={`${color}22`} filter="url(#lglow)"/>
+            )}
+
+            {/* Shadow */}
+            <ellipse cx={0} cy={isDrag?18:10} rx={ELEM_R+4} ry={(ELEM_R+4)*0.3} fill="rgba(0,0,0,0.25)"/>
+
+            {/* Selection ring */}
+            {isSel && <rect x={-ELEM_R-8} y={-ELEM_R-8} width={(ELEM_R+8)*2} height={(ELEM_R+8)*2} rx="8" fill="none" stroke="#f59e0b" strokeWidth="2"/>}
+
+            {/* Active border glow */}
+            {powered && <rect x={-ELEM_R-4} y={-ELEM_R-4} width={(ELEM_R+4)*2} height={(ELEM_R+4)*2} rx="6" fill="none" stroke={color} strokeWidth="1.5" opacity="0.4"/>}
+
+            {/* Cross-room indicator */}
             {hasCross && (
-              <g transform={`translate(${-R*0.72},${-R*1.1})`}>
+              <g transform={`translate(${-ELEM_R-4},${-ELEM_R-4})`}>
                 <circle r="8" fill="#4a9eff" stroke="white" strokeWidth="1.5"/>
                 <text textAnchor="middle" dominantBaseline="central" fontSize="10" fill="white" style={{ pointerEvents:"none" }}>⌁</text>
               </g>
             )}
-            <circle r={R} fill={powered && el.type==="light" ? "#fffce8" : "white"} stroke={isPSrc || isSel ? "#f59e0b" : color} strokeWidth={isSel || isPSrc ? 3.5 : 2.5}/>
-            <text y={5} textAnchor="middle" fontSize="22" style={{ pointerEvents:"none", userSelect:"none" }}>{ELEMENT_ICONS[el.type]}</text>
-            <text y={R+16} textAnchor="middle" fontSize="9" fill={isSel?"#6a4a10":"#706050"} fontFamily="monospace" style={{ pointerEvents:"none", userSelect:"none" }}>{el.label}</text>
+
+            {/* SVG Icon — inline, centered at origin, native size */}
+            <g transform={`translate(-28,-28)`} style={{ pointerEvents:"none" }}>
+              <ElementSVG type={el.type} active={powered} isOn={el.isOn}/>
+            </g>
+
+            {/* Label */}
+            <text y={ELEM_R+18} textAnchor="middle" fontSize="9" fill={isSel?"#f59e0b":"#94a3b8"} fontFamily="monospace" style={{ pointerEvents:"none", userSelect:"none" }}>{el.label}</text>
+
+            {/* Powered badge */}
             {powered && (
-              <g transform={`translate(${R*0.72},${-R*0.72})`}>
-                <circle r="10" fill="#22c55e" stroke="white" strokeWidth="2"/>
-                <text textAnchor="middle" dominantBaseline="central" fontSize="11" fill="white" style={{ pointerEvents:"none" }}>✓</text>
+              <g transform={`translate(${ELEM_R+2},${-ELEM_R+2})`}>
+                <circle r="8" fill="#22c55e" stroke="white" strokeWidth="1.5"/>
+                <text textAnchor="middle" dominantBaseline="central" fontSize="9" fill="white" style={{ pointerEvents:"none" }}>✓</text>
               </g>
             )}
+
+            {/* Ground badge */}
             {el.isGrounded && (
-              <g transform={`translate(${-R*0.72},${-R*0.72})`}>
-                <circle r="9" fill="#16a34a" stroke="white" strokeWidth="1.5"/>
-                <text textAnchor="middle" dominantBaseline="central" fontSize="10" fill="white" style={{ pointerEvents:"none" }}>⏚</text>
+              <g transform={`translate(${-ELEM_R-2},${-ELEM_R+2})`}>
+                <circle r="7" fill="#16a34a" stroke="white" strokeWidth="1.5"/>
+                <text textAnchor="middle" dominantBaseline="central" fontSize="8" fill="white" style={{ pointerEvents:"none" }}>⏚</text>
               </g>
             )}
-            {el.circuitId && <circle cx={R*0.72} cy={R*0.72} r="6" fill={color} stroke="white" strokeWidth="1.2"/>}
+
+            {/* Circuit color dot */}
+            {el.circuitId && <circle cx={ELEM_R+2} cy={ELEM_R} r="5" fill={color} stroke="rgba(0,0,0,0.4)" strokeWidth="1"/>}
+
+            {/* ── Port Left ── */}
+            <circle
+              cx={-(ELEM_R + 10)} cy={0} r={isPendingLeft ? 8 : 6}
+              fill={isPendingLeft ? "#f59e0b" : portActiveColor(hasAnyWire)}
+              stroke={portStrokeColor(isPendingLeft, hasAnyWire)}
+              strokeWidth="2"
+              style={{ cursor:"crosshair", transition:"r 0.1s" }}
+              filter={isPendingLeft ? "url(#portGlow)" : undefined}
+              onClick={(e: RMouseEvent<SVGCircleElement>) => {
+                e.stopPropagation();
+                if (!isDrag) {
+                  if (pendingWireFrom && pendingFromElId !== el.id) {
+                    // Complete wire to this element
+                    const fromId = pendingWireFrom.split(":")[0];
+                    if (fromId) {
+                      // call onWireConnect equivalent via onPortClick
+                      onPortClick(el.id, "left");
+                    }
+                  } else {
+                    onPortClick(el.id, "left");
+                  }
+                }
+              }}
+              onMouseEnter={(e: RMouseEvent<SVGCircleElement>) => {
+                if (!isDrag) (e.currentTarget as SVGCircleElement).setAttribute("r","9");
+              }}
+              onMouseLeave={(e: RMouseEvent<SVGCircleElement>) => {
+                (e.currentTarget as SVGCircleElement).setAttribute("r", isPendingLeft ? "8" : "6");
+              }}
+            />
+
+            {/* ── Port Right ── */}
+            <circle
+              cx={ELEM_R + 10} cy={0} r={isPendingRight ? 8 : 6}
+              fill={isPendingRight ? "#f59e0b" : portActiveColor(hasAnyWire)}
+              stroke={portStrokeColor(isPendingRight, hasAnyWire)}
+              strokeWidth="2"
+              style={{ cursor:"crosshair", transition:"r 0.1s" }}
+              filter={isPendingRight ? "url(#portGlow)" : undefined}
+              onClick={(e: RMouseEvent<SVGCircleElement>) => {
+                e.stopPropagation();
+                if (!isDrag) {
+                  onPortClick(el.id, "right");
+                }
+              }}
+              onMouseEnter={(e: RMouseEvent<SVGCircleElement>) => {
+                if (!isDrag) (e.currentTarget as SVGCircleElement).setAttribute("r","9");
+              }}
+              onMouseLeave={(e: RMouseEvent<SVGCircleElement>) => {
+                (e.currentTarget as SVGCircleElement).setAttribute("r", isPendingRight ? "8" : "6");
+              }}
+            />
           </g>
         );
       })}
@@ -1108,12 +1423,13 @@ function RoomView({
 // ─── Main App ──────────────────────────────────────────────────────────────────
 
 export default function HouseSimulator() {
-  const [state, setState] = useState<AppState>(INITIAL);
-  const [pwf, setPWF] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"elements" | "circuits" | "panel">("elements");
-  const [ncn, setNcn] = useState<string>("");
-  const [nct, setNct] = useState<CircuitType>("lighting");
-  const [showRoomMgr, setShowRoomMgr] = useState(false);
+  const [state,         setState]        = useState<AppState>(INITIAL);
+  // pwf format: "elId:left" | "elId:right" | null
+  const [pwf,           setPWF]          = useState<string | null>(null);
+  const [activeTab,     setActiveTab]    = useState<"elements" | "circuits" | "panel">("elements");
+  const [ncn,           setNcn]          = useState<string>("");
+  const [nct,           setNct]          = useState<CircuitType>("lighting");
+  const [showRoomMgr,   setShowRoomMgr]  = useState(false);
   const [showCrossRoom, setShowCrossRoom] = useState(false);
 
   const errors  = useMemo(() => validateInstallation(state), [state]);
@@ -1157,44 +1473,74 @@ export default function HouseSimulator() {
     setState(s => ({ ...s, elements: s.elements.map(e => e.id === id ? { ...e, x, y } : e) }));
   }, []);
 
-  const elClick = useCallback((id: string, wire: boolean): void => {
-    if (wire) {
-      setPWF(p => p === id ? null : id);
-      setState(s => ({ ...s, selectedElementId: id }));
-    } else if (!pwf) {
+  const elClick = useCallback((id: string): void => {
+    if (!pwf) {
       setState(s => ({ ...s, selectedElementId: s.selectedElementId === id ? null : id }));
     }
   }, [pwf]);
 
-  const connect = useCallback((toId: string): void => {
-    if (!pwf || pwf === toId) { setPWF(null); return; }
-    const fe = state.elements.find(e => e.id === pwf);
-    const te = state.elements.find(e => e.id === toId);
+  // ── Port-based wire connection ──────────────────────────────────────────────
+  const portClick = useCallback((elId: string, side: "left" | "right"): void => {
+    const portId = `${elId}:${side}`;
+
+    if (!pwf) {
+      // Start wire from this port
+      setPWF(portId);
+      setState(s => ({ ...s, selectedElementId: elId }));
+      return;
+    }
+
+    if (pwf === portId) {
+      // Click same port = cancel
+      setPWF(null);
+      return;
+    }
+
+    // Complete the wire
+    const fromElId = pwf.split(":")[0];
+    if (!fromElId || fromElId === elId) { setPWF(null); return; }
+
+    const fe = state.elements.find(e => e.id === fromElId);
+    const te = state.elements.find(e => e.id === elId);
     if (!fe || !te) { setPWF(null); return; }
+
     const cid = fe.circuitId ?? te.circuitId ?? "";
     const gnd = fe.type === "ground_rod" || te.type === "ground_rod";
+
     setState(s => ({
       ...s,
-      wires: [...s.wires, { id:uid(), fromElementId:pwf, toElementId:toId, circuitId:cid, isGroundWire:gnd, path:[] }],
+      wires: [...s.wires, {
+        id: uid(), fromElementId: fromElId, toElementId: elId,
+        circuitId: cid, isGroundWire: gnd, path: [],
+      }],
       elements: gnd
-        ? s.elements.map(e => (e.id === toId || e.id === pwf) ? { ...e, isGrounded:true } : e)
+        ? s.elements.map(e => (e.id === elId || e.id === fromElId) ? { ...e, isGrounded:true } : e)
         : s.elements,
     }));
     setPWF(null);
   }, [pwf, state.elements]);
 
+  // For cross-room wire
   const handleCrossRoomConnect = useCallback((toId: string): void => {
-    if (!pwf || pwf === toId) { setShowCrossRoom(false); return; }
-    const fe = state.elements.find(e => e.id === pwf);
+    if (!pwf) { setShowCrossRoom(false); return; }
+    const fromElId = pwf.split(":")[0];
+    if (!fromElId || fromElId === toId) { setPWF(null); setShowCrossRoom(false); return; }
+
+    const fe = state.elements.find(e => e.id === fromElId);
     const te = state.elements.find(e => e.id === toId);
     if (!fe || !te) { setPWF(null); setShowCrossRoom(false); return; }
+
     const cid = fe.circuitId ?? te.circuitId ?? "";
     const gnd = fe.type === "ground_rod" || te.type === "ground_rod";
+
     setState(s => ({
       ...s,
-      wires: [...s.wires, { id:uid(), fromElementId:pwf, toElementId:toId, circuitId:cid, isGroundWire:gnd, path:[] }],
+      wires: [...s.wires, {
+        id: uid(), fromElementId: fromElId, toElementId: toId,
+        circuitId: cid, isGroundWire: gnd, path: [],
+      }],
       elements: gnd
-        ? s.elements.map(e => (e.id === toId || e.id === pwf) ? { ...e, isGrounded:true } : e)
+        ? s.elements.map(e => (e.id === toId || e.id === fromElId) ? { ...e, isGrounded:true } : e)
         : s.elements,
     }));
     setPWF(null); setShowCrossRoom(false);
@@ -1207,7 +1553,7 @@ export default function HouseSimulator() {
       wires: s.wires.filter(w => w.fromElementId !== id && w.toElementId !== id),
       selectedElementId: s.selectedElementId === id ? null : s.selectedElementId,
     }));
-    if (pwf === id) setPWF(null);
+    if (pwf?.startsWith(id)) setPWF(null);
   }, [pwf]);
 
   const delWire = useCallback((id: string): void => {
@@ -1294,12 +1640,11 @@ export default function HouseSimulator() {
   }, []);
 
   const U = {
-    bg:"#080e1a", side:"#060c18", bdr:"#1a2840",
-    txt:"#94a3b8", dim:"#3a5070", acc:"#4a9eff",
+    bg:"#080e1a", side:"#060d1a", bdr:"#1e293b",
+    txt:"#94a3b8", dim:"#58677b", acc:"#4a9eff",
     accBg:"rgba(74,158,255,0.08)",
   };
-  const scoreColor = score >= 80 ? "#22c55e" : score >= 60 ? "#f59e0b" : "#ef4444";
-  const fromEl = pwf ? (state.elements.find(e => e.id === pwf) ?? null) : null;
+  const scoreColor = score >= 80 ? "#4ade80" : score >= 60 ? "#f59e0b" : "#ef4444";
 
   const tabStyle = (t: "elements" | "circuits" | "panel"): CSSProperties => ({
     flex:1, padding:"8px 0",
@@ -1310,8 +1655,12 @@ export default function HouseSimulator() {
     fontSize:8, cursor:"pointer", fontFamily:"monospace",
   });
 
+  // Extract fromElId from pwf for cross-room
+  const pwfElId = pwf ? pwf.split(":")[0] : null;
+  const fromEl  = pwfElId ? (state.elements.find(e => e.id === pwfElId) ?? null) : null;
+
   return (
-    <div style={{ display:"flex", height:"100vh", background:U.bg, fontFamily:"Georgia,serif", overflow:"hidden" }}>
+    <div style={{ display:"flex", height:"100vh", background:U.bg, fontFamily:"'Courier New', monospace", overflow:"hidden" }}>
 
       {showRoomMgr && (
         <RoomManager rooms={state.rooms} onClose={() => setShowRoomMgr(false)} onSave={saveRooms}/>
@@ -1327,7 +1676,7 @@ export default function HouseSimulator() {
       {/* ── Left Palette ── */}
       <aside style={{ width:210, background:U.side, borderRight:`1px solid ${U.bdr}`, display:"flex", flexDirection:"column", overflowY:"auto", flexShrink:0 }}>
         <div style={{ padding:"14px 13px 9px", borderBottom:`1px solid ${U.bdr}` }}>
-          <div style={{ fontSize:9, color:U.acc, letterSpacing:"0.18em", fontFamily:"monospace", fontWeight:"bold" }}>⚡ SIMULADOR ELÉCTRICO</div>
+          <div style={{ fontSize:9, color:"#4ade80", letterSpacing:"0.18em", fontFamily:"monospace", fontWeight:"bold" }}>⚡ SIMULADOR ELÉCTRICO</div>
           <div style={{ fontSize:7, color:U.dim, marginTop:3, fontFamily:"monospace" }}>Residencial · RF-06 a RF-10</div>
         </div>
 
@@ -1357,11 +1706,13 @@ export default function HouseSimulator() {
                 key={t} draggable
                 onDragStart={(e: DragEvent<HTMLDivElement>) => e.dataTransfer.setData("elemType", t)}
                 style={{ display:"flex", alignItems:"center", gap:9, padding:"6px 13px", cursor:"grab", borderRadius:7, margin:"2px 6px", transition:"all 0.15s", userSelect:"none", border:"1px solid transparent" }}
-                onMouseEnter={e => { e.currentTarget.style.background = U.accBg; e.currentTarget.style.borderColor = "#e0c890"; }}
+                onMouseEnter={e => { e.currentTarget.style.background = U.accBg; e.currentTarget.style.borderColor = "#1e293b"; }}
                 onMouseLeave={e => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "transparent"; }}
               >
-                <div style={{ width:34, height:34, display:"flex", alignItems:"center", justifyContent:"center", background:"rgba(255,255,255,0.04)", borderRadius:5, flexShrink:0, fontSize:20 }}>
-                  {ELEMENT_ICONS[t]}
+                <div style={{ width:36, height:28, display:"flex", alignItems:"center", justifyContent:"center", background:"rgba(255,255,255,0.04)", borderRadius:5, flexShrink:0, overflow:"hidden" }}>
+                  <svg width="56" height="56" viewBox="0 0 56 56" style={{ transform:"scale(0.5)", transformOrigin:"center", flexShrink:0 }}>
+                    <ElementSVG type={t}/>
+                  </svg>
                 </div>
                 <span style={{ fontSize:10, color:U.txt }}>{ELEMENT_LABELS[t]}</span>
               </div>
@@ -1413,7 +1764,7 @@ export default function HouseSimulator() {
           <div style={{ padding:12 }}>
             <div style={{ fontSize:8, color:U.dim, marginBottom:10, fontFamily:"monospace" }}>CIRCUITO → INTERRUPTOR</div>
             {state.circuits.length === 0 && (
-              <div style={{ color:"#94a3b8", textAlign:"center", padding:"16px 0", fontSize:8, fontFamily:"monospace" }}>Crea circuitos primero</div>
+              <div style={{ color:U.txt, textAlign:"center", padding:"16px 0", fontSize:8, fontFamily:"monospace" }}>Crea circuitos primero</div>
             )}
             {state.circuits.map(c => (
               <div key={c.id} style={{ background:"rgba(255,255,255,0.03)", border:`1px solid ${U.bdr}`, borderRadius:6, padding:"8px", marginBottom:6 }}>
@@ -1431,40 +1782,19 @@ export default function HouseSimulator() {
                   ))}
                 </select>
                 {c.breakerId && (
-                  <div style={{ marginTop:4, fontSize:7, color:"#22c55e", fontFamily:"monospace" }}>✓ Protegido · Electrones activos</div>
+                  <div style={{ marginTop:4, fontSize:7, color:"#4ade80", fontFamily:"monospace" }}>✓ Protegido · Electrones activos</div>
                 )}
               </div>
             ))}
           </div>
         )}
-
-        <div style={{ padding:"10px 13px", borderTop:`1px solid ${U.bdr}` }}>
-          <div style={{ fontSize:7, color:U.dim, fontFamily:"monospace", marginBottom:5 }}>PUNTUACIÓN</div>
-          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-            <div style={{ flex:1, height:6, background:"#0a1428", borderRadius:3, overflow:"hidden" }}>
-              <div style={{ width:`${score}%`, height:"100%", background:scoreColor, borderRadius:3, transition:"width 0.4s" }}/>
-            </div>
-            <span style={{ fontSize:11, fontWeight:"bold", color:scoreColor, fontFamily:"monospace", minWidth:30, textAlign:"right" }}>{score}</span>
-          </div>
-        </div>
-
-        <div style={{ padding:"8px 13px", borderTop:`1px solid ${U.bdr}` }}>
-          <button
-            onClick={() => { setState(INITIAL); setPWF(null); }}
-            style={{ width:"100%", background:"transparent", border:`1px solid ${U.bdr}`, color:U.dim, fontSize:8, fontFamily:"monospace", padding:"6px", borderRadius:6, cursor:"pointer" }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = "#ef4444"; e.currentTarget.style.color = "#ef4444"; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = U.bdr; e.currentTarget.style.color = U.dim; }}
-          >
-            🗑 LIMPIAR TODO
-          </button>
-        </div>
       </aside>
 
       {/* ── Main Canvas ── */}
       <div style={{ flex:1, position:"relative", overflow:"hidden" }}>
-        <div style={{ position:"absolute", top:0, left:0, right:0, height:47, background:"rgba(248,244,237,0.97)", backdropFilter:"blur(8px)", borderBottom:"1px solid #d4c8b0", display:"flex", alignItems:"center", padding:"0 16px", gap:12, zIndex:60 }}>
+        <div style={{ position:"absolute", top:0, left:0, right:0, height:47, background:"rgba(6,13,26,0.97)", backdropFilter:"blur(8px)", borderBottom:`1px solid ${U.bdr}`, display:"flex", alignItems:"center", padding:"0 16px", gap:12, zIndex:60 }}>
           {state.viewTarget === "interior" && (
-            <button onClick={back} style={{ background:"rgba(74,158,255,0.08)", border:"1px solid #4a9eff", color:"#4a9eff", fontSize:10, padding:"4px 16px", borderRadius:7, cursor:"pointer", fontFamily:"monospace" }}>
+            <button onClick={back} style={{ background:U.accBg, border:`1px solid ${U.acc}`, color:U.acc, fontSize:10, padding:"4px 16px", borderRadius:7, cursor:"pointer", fontFamily:"monospace" }}>
               ← Vista General
             </button>
           )}
@@ -1474,16 +1804,16 @@ export default function HouseSimulator() {
               : "📐 PLANTA — Clic en habitación para instalar"}
           </div>
           {state.circuits.filter(c => c.breakerId).length > 0 && (
-            <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:6, background:"rgba(34,197,94,0.1)", border:"1px solid rgba(34,197,94,0.4)", padding:"3px 10px", borderRadius:12 }}>
-              <span style={{ width:6, height:6, borderRadius:"50%", background:"#22c55e", display:"inline-block" }}/>
-              <span style={{ fontSize:8, color:"#22c55e", fontFamily:"monospace" }}>
+            <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:6, background:"rgba(74,222,128,0.1)", border:"1px solid rgba(74,222,128,0.4)", padding:"3px 10px", borderRadius:12 }}>
+              <span style={{ width:6, height:6, borderRadius:"50%", background:"#4ade80", display:"inline-block" }}/>
+              <span style={{ fontSize:8, color:"#4ade80", fontFamily:"monospace" }}>
                 {state.circuits.filter(c => c.breakerId).length} circuitos energizados
               </span>
             </div>
           )}
           {pwf && (
-            <div style={{ marginLeft:"auto", background:"rgba(245,158,11,0.1)", border:"1px solid #f59e0b", color:"#f59e0b", fontSize:9, padding:"3px 14px", borderRadius:12, fontFamily:"monospace" }}>
-              ⌁ Clic en destino · ESC cancela
+            <div style={{ marginLeft: state.circuits.filter(c => c.breakerId).length > 0 ? 0 : "auto", background:"rgba(245,158,11,0.1)", border:"1px solid #f59e0b", color:"#f59e0b", fontSize:9, padding:"3px 14px", borderRadius:12, fontFamily:"monospace" }}>
+              ● Toca puerto destino · ESC cancela
             </div>
           )}
         </div>
@@ -1502,8 +1832,11 @@ export default function HouseSimulator() {
               room={room} elements={state.elements} wires={state.wires}
               circuits={state.circuits} rooms={state.rooms}
               onDrop={(t, x, y) => drop(t, x, y, room.id)}
-              onElementClick={elClick} onElementMove={move}
-              onWireConnect={connect} selectedElId={state.selectedElementId}
+              onElementClick={elClick}
+              onElementMove={move}
+              onWireConnect={() => {}}
+              onPortClick={portClick}
+              selectedElId={state.selectedElementId}
               pendingWireFrom={pwf}
               onCanvasClick={() => { if (pwf) setPWF(null); else setState(s => ({ ...s, selectedElementId:null })); }}
               onCrossRoomWire={() => setShowCrossRoom(true)}
@@ -1515,61 +1848,117 @@ export default function HouseSimulator() {
         <ValidationPanel errors={errors} score={score}/>
       </div>
 
-      {/* ── Right Properties ── */}
-      <aside style={{ width:216, background:U.side, borderLeft:`1px solid ${U.bdr}`, display:"flex", flexDirection:"column", overflowY:"auto", flexShrink:0 }}>
-        <div style={{ padding:"12px 13px", borderBottom:`1px solid ${U.bdr}` }}>
-          <div style={{ fontSize:8, color:U.dim, letterSpacing:"0.15em", fontFamily:"monospace" }}>PROPIEDADES</div>
+      {/* ── Right Properties (matches CircuitSimulator style) ── */}
+      <aside style={{
+        width: 216,
+        background: U.side,
+        borderLeft: `1px solid ${U.bdr}`,
+        display: "flex",
+        flexDirection: "column",
+        overflowY: "auto",
+        flexShrink: 0,
+        fontFamily: "'Courier New', monospace",
+      }}>
+
+        {/* Installation summary */}
+        <div style={{ padding:"14px", borderBottom:`1px solid #3b4a60` }}>
+          <div style={{ fontSize:9, color:"#979ca4", letterSpacing:"0.12em", textTransform:"uppercase", marginBottom:10 }}>
+            Resumen de Instalación
+          </div>
+          {([
+            { label:"Habitaciones",   value:state.rooms.length,                                                                           color:"#60a5fa" },
+            { label:"Luminarias",     value:state.elements.filter(e => e.type === "light").length,                                        color:"#fbbf24" },
+            { label:"  energizadas",  value:state.elements.filter(e => isPowered(e, state.elements, state.wires, state.circuits)).length,  color:"#4ade80" },
+            { label:"Tomacorrientes", value:state.elements.filter(e => e.type === "outlet").length,                                       color:"#60a5fa" },
+            { label:"Circuitos",      value:state.circuits.length,                                                                        color:"#a78bfa" },
+            { label:"  energizados",  value:state.circuits.filter(c => !!c.breakerId).length,                                             color:"#4ade80" },
+            { label:"Cables",         value:state.wires.length,                                                                           color:"#64748b" },
+            { label:"  con corriente",value:activeWiresSet.size,                                                                          color:"#4ade80" },
+          ] satisfies Array<{ label: string; value: number; color: string }>).map(row => (
+            <div key={row.label} style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"5px 0", borderBottom:`1px solid #0f172a` }}>
+              <span style={{ fontSize:10, color:U.dim }}>{row.label}</span>
+              <span style={{ fontSize:12, fontWeight:"bold", color:row.color }}>{row.value}</span>
+            </div>
+          ))}
         </div>
 
-        {selEl ? (
-          <div style={{ padding:"12px 13px" }}>
-            <div style={{ display:"flex", justifyContent:"center", marginBottom:10, background:"rgba(255,255,255,0.03)", border:`1px solid ${U.bdr}`, borderRadius:8, padding:10, fontSize:40 }}>
-              {ELEMENT_ICONS[selEl.type]}
+        {/* Score */}
+        <div style={{ padding:"12px 14px", borderBottom:`1px solid ${U.bdr}` }}>
+          <div style={{ fontSize:8, color:"#8a8d96", letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:6 }}>
+            Puntuación RF-06 a RF-10
+          </div>
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <div style={{ flex:1, height:6, background:"#0a1428", borderRadius:3, overflow:"hidden" }}>
+              <div style={{ width:`${score}%`, height:"100%", background:scoreColor, borderRadius:3, transition:"width 0.4s" }}/>
             </div>
-            <div style={{ fontSize:9, color:U.acc, background:U.accBg, padding:"3px 8px", borderRadius:5, display:"inline-flex", alignItems:"center", marginBottom:10, fontFamily:"monospace", border:`1px solid ${U.acc}44` }}>
+            <span style={{ fontSize:14, fontWeight:"bold", color:scoreColor, minWidth:30, textAlign:"right" }}>{score}</span>
+          </div>
+        </div>
+
+        {/* Selected element properties */}
+        {selEl ? (
+          <div style={{ padding:"12px 14px" }}>
+            <div style={{ fontSize:9, color:"#64748b", letterSpacing:"0.12em", textTransform:"uppercase", marginBottom:10 }}>
+              Propiedades
+            </div>
+
+            {/* Icon preview */}
+            <div style={{ display:"flex", justifyContent:"center", marginBottom:10, background:"rgba(255,255,255,0.03)", border:`1px solid ${U.bdr}`, borderRadius:8, padding:10 }}>
+              <svg width="56" height="56" viewBox="0 0 56 56">
+                <ElementSVG type={selEl.type} active={isPowered(selEl, state.elements, state.wires, state.circuits)} isOn={selEl.isOn}/>
+              </svg>
+            </div>
+
+            <div style={{ fontSize:9, color:"#4ade80", background:"rgba(74,222,128,0.08)", padding:"3px 8px", borderRadius:4, display:"inline-block", marginBottom:10, border:"1px solid rgba(74,222,128,0.2)" }}>
               {selEl.type.toUpperCase()}
             </div>
 
+            {/* Power status */}
             {(["light","fan","smoke_detector","outlet"] as ElementType[]).includes(selEl.type) && (() => {
               const on = isPowered(selEl, state.elements, state.wires, state.circuits);
               return (
-                <div style={{ marginBottom:10, padding:"6px 10px", background:on?"rgba(34,197,94,0.1)":"rgba(239,68,68,0.07)", border:`1px solid ${on?"#22c55e":"#ef4444"}`, borderRadius:6 }}>
-                  <div style={{ fontSize:9, color:on?"#22c55e":"#ef4444", fontFamily:"monospace", fontWeight:"bold" }}>{on ? "✓ ALIMENTADO" : "✗ Sin alimentación"}</div>
-                  <div style={{ fontSize:7, color:U.dim, fontFamily:"monospace", marginTop:2 }}>
+                <div style={{ marginBottom:10, padding:"6px 10px", background:on?"rgba(74,222,128,0.1)":"rgba(239,68,68,0.07)", border:`1px solid ${on?"#4ade80":"#ef4444"}`, borderRadius:6 }}>
+                  <div style={{ fontSize:9, color:on?"#4ade80":"#ef4444", fontWeight:"bold" }}>
+                    {on ? "✓ ALIMENTADO" : "✗ Sin alimentación"}
+                  </div>
+                  <div style={{ fontSize:7, color:U.dim, marginTop:2 }}>
                     {on ? "Electrones fluyendo" : "Necesita: circuito + interruptor + cable"}
                   </div>
                 </div>
               );
             })()}
 
+            {/* Label */}
             <div style={{ marginBottom:9 }}>
-              <div style={{ fontSize:8, color:U.dim, marginBottom:3, fontFamily:"monospace" }}>Etiqueta</div>
+              <div style={{ fontSize:9, color:"#475569", marginBottom:3 }}>Etiqueta</div>
               <input
                 value={selEl.label}
                 onChange={e => setState(s => ({ ...s, elements: s.elements.map(el => el.id === selEl.id ? { ...el, label:e.target.value } : el) }))}
-                style={{ width:"100%", background:"rgba(255,255,255,0.06)", border:`1px solid ${U.bdr}`, borderRadius:5, color:U.txt, fontSize:10, padding:"4px 7px", outline:"none", boxSizing:"border-box", fontFamily:"monospace" }}
+                style={{ width:"100%", background:"#0f172a", border:`1px solid ${U.bdr}`, borderRadius:4, color:"#e2e8f0", fontSize:11, padding:"4px 7px", outline:"none", boxSizing:"border-box" }}
               />
             </div>
 
+            {/* Breaker rating */}
             {(["panel_breaker","panel_differential"] as ElementType[]).includes(selEl.type) && (
               <div style={{ marginBottom:9 }}>
-                <div style={{ fontSize:8, color:U.dim, marginBottom:3, fontFamily:"monospace" }}>Calibre (A)</div>
+                <div style={{ fontSize:9, color:"#475569", marginBottom:3 }}>Calibre (A)</div>
                 <input
                   type="number"
                   value={selEl.rating ?? 20}
                   onChange={e => setState(s => ({ ...s, elements: s.elements.map(el => el.id === selEl.id ? { ...el, rating:Number(e.target.value) } : el) }))}
-                  style={{ width:"100%", background:"rgba(255,255,255,0.06)", border:`1px solid ${U.bdr}`, borderRadius:5, color:U.acc, fontSize:12, padding:"4px 7px", outline:"none", boxSizing:"border-box", fontFamily:"monospace" }}
+                  style={{ width:"100%", background:"#0f172a", border:`1px solid ${U.bdr}`, borderRadius:4, color:"#fbbf24", fontSize:12, padding:"4px 7px", outline:"none", boxSizing:"border-box" }}
                 />
               </div>
             )}
 
+            {/* Circuit assignment */}
             {!(["panel_breaker","panel_differential"] as ElementType[]).includes(selEl.type) && (
               <div style={{ marginBottom:9 }}>
-                <div style={{ fontSize:8, color:U.dim, marginBottom:3, fontFamily:"monospace" }}>Circuito</div>
+                <div style={{ fontSize:9, color:"#475569", marginBottom:3 }}>Circuito</div>
                 <select
                   value={selEl.circuitId ?? ""}
                   onChange={e => { if (e.target.value) assignCircuit(selEl.id, e.target.value); }}
-                  style={{ width:"100%", background:"rgba(255,255,255,0.06)", border:`1px solid ${U.bdr}`, borderRadius:5, color:U.txt, fontSize:9, padding:"4px 6px", outline:"none", boxSizing:"border-box", fontFamily:"monospace" }}
+                  style={{ width:"100%", background:"#0f172a", border:`1px solid ${U.bdr}`, borderRadius:4, color:U.txt, fontSize:9, padding:"4px 6px", outline:"none", boxSizing:"border-box" }}
                 >
                   <option value="">Sin circuito</option>
                   {state.circuits.map(c => <option key={c.id} value={c.id} style={{ background:"#0a1428" }}>{c.name}</option>)}
@@ -1577,38 +1966,32 @@ export default function HouseSimulator() {
               </div>
             )}
 
+            {/* Toggle switch / detector */}
             {(["switch","smoke_detector"] as ElementType[]).includes(selEl.type) && (
               <button
                 onClick={() => toggleEl(selEl.id)}
-                style={{ width:"100%", marginBottom:7, background:selEl.isOn?"rgba(34,197,94,0.1)":"rgba(239,68,68,0.07)", border:`1px solid ${selEl.isOn?"#22c55e":"#ef4444"}`, color:selEl.isOn?"#22c55e":"#ef4444", fontSize:9, padding:"5px", borderRadius:6, cursor:"pointer", fontFamily:"monospace" }}
+                style={{ width:"100%", marginBottom:7, background:selEl.isOn?"rgba(74,222,128,0.1)":"rgba(239,68,68,0.07)", border:`1px solid ${selEl.isOn?"#4ade80":"#ef4444"}`, color:selEl.isOn?"#4ade80":"#ef4444", fontSize:9, padding:"5px", borderRadius:6, cursor:"pointer" }}
               >
                 {selEl.isOn ? "● ON → clic para apagar" : "○ OFF → clic para encender"}
               </button>
             )}
 
+            {/* Ground toggle */}
             {(["outlet","light"] as ElementType[]).includes(selEl.type) && (
               <button
                 onClick={() => toggleGnd(selEl.id)}
-                style={{ width:"100%", marginBottom:7, background:selEl.isGrounded?"rgba(34,197,94,0.1)":"transparent", border:`1px solid ${selEl.isGrounded?"#22c55e":U.bdr}`, color:selEl.isGrounded?"#22c55e":U.dim, fontSize:9, padding:"5px", borderRadius:6, cursor:"pointer", fontFamily:"monospace" }}
+                style={{ width:"100%", marginBottom:7, background:selEl.isGrounded?"rgba(74,222,128,0.1)":"transparent", border:`1px solid ${selEl.isGrounded?"#4ade80":U.bdr}`, color:selEl.isGrounded?"#4ade80":U.dim, fontSize:9, padding:"5px", borderRadius:6, cursor:"pointer" }}
               >
                 {selEl.isGrounded ? "⏚ CON TIERRA ✓" : "⏚ Marcar con tierra"}
               </button>
             )}
 
-            {state.viewTarget === "interior" && (
-              <button
-                onClick={() => setPWF(p => p === selEl.id ? null : selEl.id)}
-                style={{ width:"100%", marginBottom:7, background:pwf===selEl.id?U.accBg:"transparent", border:`1px solid ${pwf===selEl.id?U.acc:U.bdr}`, color:pwf===selEl.id?U.acc:U.dim, fontSize:9, padding:"5px", borderRadius:6, cursor:"pointer", fontFamily:"monospace" }}
-              >
-                {pwf === selEl.id ? "● Esperando destino... (ESC)" : "⌁ Iniciar cable desde aquí"}
-              </button>
-            )}
-
+            {/* Delete */}
             <button
               onClick={() => delEl(selEl.id)}
-              style={{ width:"100%", background:"transparent", border:`1px solid ${U.bdr}`, color:U.dim, fontSize:9, padding:"5px", borderRadius:6, cursor:"pointer", fontFamily:"monospace" }}
-              onMouseEnter={e => { e.currentTarget.style.color = "#ef4444"; e.currentTarget.style.borderColor = "#ef4444"; }}
-              onMouseLeave={e => { e.currentTarget.style.color = U.dim; e.currentTarget.style.borderColor = U.bdr; }}
+              style={{ width:"100%", background:"transparent", border:`1px solid ${U.bdr}`, color:U.dim, fontSize:9, padding:"5px", borderRadius:6, cursor:"pointer", transition:"all 0.15s" }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.color = "#ef4444"; (e.currentTarget as HTMLButtonElement).style.borderColor = "#ef4444"; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.color = U.dim; (e.currentTarget as HTMLButtonElement).style.borderColor = U.bdr; }}
             >× Eliminar</button>
 
             {/* Cables list */}
@@ -1616,26 +1999,28 @@ export default function HouseSimulator() {
               const cw = state.wires.filter(w => w.fromElementId === selEl.id || w.toElementId === selEl.id);
               if (!cw.length) return null;
               return (
-                <div style={{ marginTop:10 }}>
-                  <div style={{ fontSize:8, color:U.dim, marginBottom:5, fontFamily:"monospace" }}>CABLES ({cw.length})</div>
+                <div style={{ marginTop:12 }}>
+                  <div style={{ fontSize:8, color:U.dim, letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:6 }}>
+                    Cables ({cw.length})
+                  </div>
                   {cw.map(w => {
-                    const oid = w.fromElementId === selEl.id ? w.toElementId : w.fromElementId;
+                    const oid   = w.fromElementId === selEl.id ? w.toElementId : w.fromElementId;
                     const other = state.elements.find(e => e.id === oid) ?? null;
-                    const circ = state.circuits.find(c => c.id === w.circuitId) ?? null;
-                    const isCross = other && other.roomId !== selEl.roomId;
-                    const isAct = activeWiresSet.has(w.id);
+                    const circ  = state.circuits.find(c => c.id === w.circuitId) ?? null;
+                    const isCross  = other !== null && other.roomId !== selEl.roomId;
+                    const isAct    = activeWiresSet.has(w.id);
                     return (
-                      <div key={w.id} style={{ background:isAct?"rgba(34,197,94,0.07)":"rgba(255,255,255,0.02)", border:`1px solid ${isAct?"rgba(34,197,94,0.3)":isCross?"rgba(74,158,255,0.3)":U.bdr}`, borderLeft:`3px solid ${isAct?"#22c55e":isCross?"#4a9eff":(circ?.color ?? U.dim)}`, borderRadius:5, padding:"4px 8px", marginBottom:3, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                      <div key={w.id} style={{ background:isAct?"rgba(74,222,128,0.07)":"rgba(255,255,255,0.02)", border:`1px solid ${isAct?"rgba(74,222,128,0.3)":isCross?"rgba(96,165,250,0.3)":U.bdr}`, borderLeft:`3px solid ${isAct?"#4ade80":isCross?"#60a5fa":(circ?.color ?? "#334155")}`, borderRadius:5, padding:"4px 8px", marginBottom:3, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
                         <div>
-                          <span style={{ fontSize:8, color:U.txt, fontFamily:"monospace" }}>
-                            {other ? ELEMENT_ICONS[other.type] : "?"} {other?.label ?? "?"}
+                          <span style={{ fontSize:9, color:U.txt }}>
+                            {other !== null ? ELEMENT_ICONS[other.type] : "?"} {other?.label ?? "?"}
                           </span>
-                          <div style={{ fontSize:7, color:isAct?"#22c55e":U.dim, fontFamily:"monospace" }}>
+                          <div style={{ fontSize:7, color:isAct?"#4ade80":U.dim }}>
                             {isAct ? "⚡ activo" : ""}
-                            {isCross ? ` ⌁ ${state.rooms.find(r => r.id === other?.roomId)?.name ?? "?"}` : ""}
+                            {isCross && other !== null ? ` ⌁ ${state.rooms.find(r => r.id === other.roomId)?.name ?? "?"}` : ""}
                           </div>
                         </div>
-                        <button onClick={() => delWire(w.id)} style={{ fontSize:8, color:"#ef4444", background:"none", border:"none", cursor:"pointer", padding:0 }}>✕</button>
+                        <button onClick={() => delWire(w.id)} style={{ fontSize:9, color:"#ef4444", background:"none", border:"none", cursor:"pointer", padding:0 }}>✕</button>
                       </div>
                     );
                   })}
@@ -1646,11 +2031,12 @@ export default function HouseSimulator() {
             <MultimeterPanel selEl={selEl} elements={state.elements} wires={state.wires} circuits={state.circuits}/>
           </div>
         ) : (
-          <div style={{ padding:"14px 13px", fontSize:9, color:U.dim, lineHeight:1.9, fontFamily:"monospace" }}>
-            <div style={{ color:U.txt, marginBottom:10, fontSize:10 }}>Sin selección</div>
+          <div style={{ padding:"14px", fontSize:10, color:U.dim, lineHeight:1.6 }}>
+            <div style={{ color:U.txt, marginBottom:10, fontSize:11 }}>Sin selección</div>
             <div style={{ color:U.txt }}>Interacciones:</div>
             <div>• Arrastra elemento → habitación</div>
-            <div>• Doble clic → iniciar cable</div>
+            <div>• Clic en puerto <span style={{ color:"#60a5fa" }}>●</span> → iniciar cable</div>
+            <div>• Clic en puerto destino → conectar</div>
             <div>• ESC → cancelar cable</div>
             <div>• ⌁ → cable inter-habitación</div>
             <div style={{ color:U.txt, marginTop:8 }}>Electrones activos si:</div>
@@ -1660,32 +2046,24 @@ export default function HouseSimulator() {
           </div>
         )}
 
-        {/* Summary */}
-        <div style={{ marginTop:"auto", padding:"12px 13px", borderTop:`1px solid ${U.bdr}` }}>
-          <div style={{ fontSize:7, color:U.dim, textTransform:"uppercase", marginBottom:8, letterSpacing:"0.12em", fontFamily:"monospace" }}>Resumen</div>
-          {([
-            { l:"Habitaciones",   v:state.rooms.length,                                                                                c:"#4a9eff" },
-            { l:"Luminarias",     v:state.elements.filter(e => e.type === "light").length,                                             c:"#f59e0b" },
-            { l:"  energizadas",  v:state.elements.filter(e => isPowered(e, state.elements, state.wires, state.circuits)).length,      c:"#22c55e" },
-            { l:"Tomacorrientes", v:state.elements.filter(e => e.type === "outlet").length,                                            c:"#3b82f6" },
-            { l:"Circuitos",      v:state.circuits.length,                                                                             c:"#8b5cf6" },
-            { l:"  energizados",  v:state.circuits.filter(c => !!c.breakerId).length,                                                  c:"#22c55e" },
-            { l:"Cables",         v:state.wires.length,                                                                                c:"#64748b" },
-            { l:"  con corriente",v:activeWiresSet.size,                                                                               c:"#22c55e" },
-          ] satisfies Array<{ l: string; v: number; c: string }>).map(r => (
-            <div key={r.l} style={{ display:"flex", justifyContent:"space-between", padding:"3px 0", borderBottom:`1px solid ${U.bdr}` }}>
-              <span style={{ fontSize:9, color:U.dim, fontFamily:"monospace" }}>{r.l}</span>
-              <span style={{ fontSize:10, fontWeight:"bold", color:r.c, fontFamily:"monospace" }}>{r.v}</span>
-            </div>
-          ))}
+        {/* Clear */}
+        <div style={{ marginTop:"auto", padding:"10px 14px", borderTop:`1px solid ${U.bdr}` }}>
+          <button
+            onClick={() => { setState(INITIAL); setPWF(null); }}
+            style={{ width:"100%", background:"transparent", border:`1px solid ${U.bdr}`, color:U.dim, fontSize:10, fontFamily:"monospace", padding:"6px", borderRadius:5, cursor:"pointer", transition:"all 0.15s" }}
+            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "#ef4444"; (e.currentTarget as HTMLButtonElement).style.color = "#ef4444"; }}
+            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = U.bdr; (e.currentTarget as HTMLButtonElement).style.color = U.dim; }}
+          >
+            🗑 LIMPIAR TODO
+          </button>
         </div>
       </aside>
 
       <style>{`
         * { box-sizing: border-box; }
         ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: #060c18; }
-        ::-webkit-scrollbar-thumb { background: #1e3050; border-radius: 2px; }
+        ::-webkit-scrollbar-track { background: #060d1a; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 2px; }
         select option { background: #0a1428; color: #94a3b8; }
       `}</style>
     </div>
