@@ -4,6 +4,7 @@ import { useState, useCallback, useRef } from "react";
 import { CompProps, CompType, CompDef, PlacedComp, Connection, CompatLevel, TransformerCircuit, PhysicsResult, CompatResult } from './type'
 import {GRID, COMP_W, COMP_H, COMP_DEFS} from "./constants"
 import { CompSVG, SVGCompType } from "@/components/electrical/symbols/CompSVG";
+import AssignmentSimulatorWrapper from "@/components/assignments/AssignmentSimulatorWrapper";
 
 
 // ─── Física ───────────────────────────────────────────────────────────────────
@@ -322,9 +323,10 @@ export default function TransformerSimulator() {
 
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
-    <div style={{display:"flex",height:"100vh",background:"#050d1a",color:"#c8d8ea",
-      fontFamily:"'JetBrains Mono','Courier New',monospace",userSelect:"none"}}
-      onMouseMove={onMouseMove} onMouseUp={onMouseUp}>
+    <AssignmentSimulatorWrapper module="machine">
+      <div style={{display:"flex",height:"100vh",background:"#050d1a",color:"#c8d8ea",
+        fontFamily:"'JetBrains Mono','Courier New',monospace",userSelect:"none"}}
+        onMouseMove={onMouseMove} onMouseUp={onMouseUp}>
 
       {/* ── Paleta ── */}
       <aside style={{width:196,borderRight:"1px solid #0f2035",background:"#030a14",overflowY:"auto",display:"flex",flexDirection:"column"}}>
@@ -692,6 +694,7 @@ export default function TransformerSimulator() {
         input[type=number]::-webkit-inner-spin-button { opacity:0.25; }
         input[type=number] { -moz-appearance:textfield; }
       `}</style>
-    </div>
+      </div>
+    </AssignmentSimulatorWrapper>
   );
 }
