@@ -9,11 +9,12 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.95.3",
+    "@supabase/ssr": "^0.9.0",
+    "@supabase/supabase-js": "^2.99.0",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "supabase": "^2.76.8",
+    "supabase": "^2.77.1",
     "uuid": "^13.0.0",
     "zustand": "^5.0.11"
   },
