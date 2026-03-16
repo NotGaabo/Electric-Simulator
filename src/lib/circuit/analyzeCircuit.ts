@@ -1,7 +1,7 @@
 // ─── Circuit Analysis Engine ───────────────────────────────────────────────────
 
 import { AnalysisResult, Component, Wire } from "@/types/types";
-import { getPorts } from "@/components/electrical/CircuitSimulator";
+import { getPorts } from "@/hooks/useCircuitSimulator";
 
 export function analyzeCircuit(
   components: Component[],
@@ -141,6 +141,10 @@ export function analyzeCircuit(
 export function effectiveResistance(c: Component, sourceV: number): number {
   switch (c.type) {
     case "resistor": return c.resistance ?? 100;
+    case "motor": return c.resistance ?? 32;
+    case "transformer": return c.resistance ?? 80;
+    case "stator": return c.resistance ?? 25;
+    case "rotor": return c.resistance ?? 20;
     case "luminaire": {
       const v = c.voltage ?? 120;
       const p = c.power ?? 60;
