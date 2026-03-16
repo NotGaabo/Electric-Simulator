@@ -6,7 +6,6 @@ import { isValidSimulatorModule } from '@/lib/simulatorModules'
 
 export async function GET(request: NextRequest) {
   try {
-    // 1. Leer el class_id del query param
     const classId = request.nextUrl.searchParams.get('class_id')
 
     if (!classId) {
@@ -18,8 +17,11 @@ export async function GET(request: NextRequest) {
 
     const supabase = await createClient()
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
+    const {
+      data: { user },
+      error: authError
+    } = await supabase.auth.getUser()
+
     if (authError || !user) {
       return NextResponse.json(
         { error: 'No autenticado' },
@@ -39,12 +41,12 @@ export async function GET(request: NextRequest) {
         created_at,
         simulator_module
       `)
-      // 2. Filtrar solo las de esta clase
       .eq('class_id', classId)
       .order('created_at', { ascending: false })
 
     if (error) {
       console.error('Error fetching assignments:', error)
+      return NextResponse.json([], { status: 500 })
     }
 
     if (!assignments || assignments.length === 0) {
@@ -52,30 +54,33 @@ export async function GET(request: NextRequest) {
     }
 
     const assignmentIds = assignments.map(a => a.id)
+
     let submittedSet = new Set<string>()
 
-    if (assignmentIds.length > 0) {
-      const { data: submissions, error: submissionsError } = await supabase
-        .from('assignment_submissions')
-        .select('assignment_id')
-        .eq('student_id', user.id)
-        .in('assignment_id', assignmentIds)
+    const { data: submissions, error: submissionsError } = await supabase
+      .from('assignment_submissions')
+      .select('assignment_id')
+      .eq('student_id', user.id)
+      .in('assignment_id', assignmentIds)
 
-      if (submissionsError) {
-        console.error('Error fetching submissions:', submissionsError)
-      } else {
-        submittedSet = new Set(submissions?.map(s => s.assignment_id))
-      }
+    if (submissionsError) {
+      console.error('Error fetching submissions:', submissionsError)
+    } else {
+      submittedSet = new Set(submissions?.map(s => s.assignment_id))
     }
 
     const normalized = assignments.map((assignment) => ({
       ...assignment,
-      status: submittedSet.has(assignment.id) ? 'submitted' : 'not_submitted'
+      status: submittedSet.has(assignment.id)
+        ? 'submitted'
+        : 'not_submitted'
     }))
 
     return NextResponse.json(normalized)
+
   } catch (error) {
     console.error('Server error:', error)
+
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }
@@ -85,7 +90,13 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { class_id, title, description, due_date, simulator_module } = await request.json()
+    const {
+      class_id,
+      title,
+      description,
+      due_date,
+      simulator_module
+    } = await request.json()
 
     if (!title || title.trim().length === 0) {
       return NextResponse.json(
@@ -102,8 +113,12 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = await createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
+
+    const {
+      data: { user },
+      error: authError
+    } = await supabase.auth.getUser()
+
     if (authError || !user) {
       return NextResponse.json(
         { error: 'No autenticado' },
@@ -132,11 +147,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { data: newAssignment, error: AssignmentsError } = await supabase
+    const { data: newAssignment, error: assignmentsError } = await supabase
       .from('assignments')
       .insert([
         {
-          class_id: class_id,
+          class_id,
           title: title.trim(),
           description: description?.trim() || null,
           due_date: due_date || null,
@@ -146,8 +161,9 @@ export async function POST(request: NextRequest) {
       .select()
       .single()
 
-    if (AssignmentsError) {
-      console.error('Error creating assignment:', AssignmentsError)
+    if (assignmentsError) {
+      console.error('Error creating assignment:', assignmentsError)
+
       return NextResponse.json(
         { error: 'Error al crear la asignación' },
         { status: 500 }
@@ -155,8 +171,10 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(newAssignment, { status: 201 })
+
   } catch (error) {
     console.error('Server error:', error)
+
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

@@ -13,7 +13,10 @@
   "dependencies": {
     "@supabase/ssr": "^0.9.0",
     "@supabase/supabase-js": "^2.99.0",
+<<<<<<< HEAD
+=======
     "html2canvas": "^1.4.1",
+>>>>>>> 50d01817873adc1a84b80a9da33e6de22ae6dd64
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3",

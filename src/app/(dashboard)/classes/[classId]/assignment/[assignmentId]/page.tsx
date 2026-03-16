@@ -7,7 +7,10 @@ import AssignmentHeader from '@/components/assignments/AssignmentHeader'
 import AssignmentCard from '@/components/assignments/AssignmentCard'
 import CommentsSection from '@/components/assignments/CommentsSection'
 import Sidebar from '@/components/assignments/Sidebar'
+<<<<<<< HEAD
+=======
 import SubmissionsPanel from '@/components/assignments/SubmissionsPanel'
+>>>>>>> 50d01817873adc1a84b80a9da33e6de22ae6dd64
 
 export default function AssignmentDetailPage() {
   const params = useParams()
@@ -63,9 +66,12 @@ export default function AssignmentDetailPage() {
           <div className="lg:col-span-2 space-y-5">
             <AssignmentCard assignment={assignment} />
             <CommentsSection {...commentsData} />
+<<<<<<< HEAD
+=======
             {assignment.my_role === 'teacher' && (
               <SubmissionsPanel submissions={assignment.submissions ?? []} />
             )}
+>>>>>>> 50d01817873adc1a84b80a9da33e6de22ae6dd64
           </div>
 
           <Sidebar assignment={assignment} />
@@ -73,4 +79,8 @@ export default function AssignmentDetailPage() {
       </div>
     </div>
   )
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 50d01817873adc1a84b80a9da33e6de22ae6dd64
