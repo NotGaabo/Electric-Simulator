@@ -11,7 +11,6 @@ import React, {
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 import { CompType, Component, Port, Wire } from "@/types/types";
-import { analyzeCircuit } from "@/lib/circuit/analyzeCircuit";
 import { CompSVG } from "@/components/electrical/symbols/CompSVG";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -29,9 +28,8 @@ export function getPorts(type: CompType): Port[] {
 // ─── Palette items ────────────────────────────────────────────────────────────
 
 import { PALETTE } from "@/components/electrical/PalettePanel";
-import { uid, wid, snap, wirePath } from "@/lib/utils";
+import { wirePath } from "@/lib/utils";
 import { useCircuitSimulator } from "@/hooks/useCircuitSimulator";
-import { clear } from "console";
 
 
 // ─── Main Component ────────────────────────────────────────────────────────────
