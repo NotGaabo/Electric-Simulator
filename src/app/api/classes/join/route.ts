@@ -1,4 +1,5 @@
 // app/api/classes/join/route.ts
+
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
@@ -7,29 +8,81 @@ export async function POST(req: NextRequest) {
     const supabase = await createClient()
 
     // Verify authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: authError
+    } = await supabase.auth.getUser()
+
     if (authError || !user) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+      return NextResponse.json(
+        { error: 'No autorizado' },
+        { status: 401 }
+      )
     }
 
     const { code } = await req.json()
 
     if (!code || typeof code !== 'string') {
-      return NextResponse.json({ error: 'Código requerido' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Código requerido' },
+        { status: 400 }
+      )
     }
 
-    // Find the class by invite code
+    const normalizedCode = code.trim().toUpperCase()
+
+    // -------- RPC METHOD (recommended with RLS) --------
+    const { data: rpcData, error: rpcError } = await supabase.rpc(
+      'join_class_by_code',
+      { p_code: normalizedCode }
+    )
+
+    if (!rpcError && rpcData && Array.isArray(rpcData) && rpcData.length > 0) {
+      const classRow = rpcData[0]
+
+      return NextResponse.json(
+        {
+          message: 'Te has unido exitosamente',
+          class: { id: classRow.id, name: classRow.name }
+        },
+        { status: 200 }
+      )
+    }
+
+    // If RPC failed but not because it doesn't exist
+    if (rpcError && rpcError.code !== 'PGRST301') {
+      if (rpcError.message?.includes('class_not_found')) {
+        return NextResponse.json(
+          { error: 'Código inválido o clase no encontrada' },
+          { status: 404 }
+        )
+      }
+
+      console.error('Join RPC error:', rpcError)
+
+      return NextResponse.json(
+        { error: 'Error al unirse a la clase' },
+        { status: 500 }
+      )
+    }
+
+    // -------- FALLBACK METHOD (direct query) --------
     const { data: classData, error: classError } = await supabase
       .from('classes')
       .select('id, name')
-      .eq(' code', code.trim().toUpperCase())
+      .eq('code', normalizedCode)
       .single()
 
     if (classError || !classData) {
-      return NextResponse.json({ error: 'Código inválido o clase no encontrada' }, { status: 404 })
+      console.error('Class lookup error:', classError)
+
+      return NextResponse.json(
+        { error: 'Código inválido o clase no encontrada' },
+        { status: 404 }
+      )
     }
 
-    // Check if user is already a member
+    // Check if user already joined
     const { data: existingMember } = await supabase
       .from('class_members')
       .select('id')
@@ -38,10 +91,13 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (existingMember) {
-      return NextResponse.json({ error: 'Ya eres miembro de esta clase' }, { status: 409 })
+      return NextResponse.json(
+        { error: 'Ya eres miembro de esta clase' },
+        { status: 409 }
+      )
     }
 
-    // Add user as student
+    // Add student
     const { error: joinError } = await supabase
       .from('class_members')
       .insert({
@@ -52,16 +108,27 @@ export async function POST(req: NextRequest) {
 
     if (joinError) {
       console.error('Join error:', joinError)
-      return NextResponse.json({ error: 'Error al unirse a la clase' }, { status: 500 })
+
+      return NextResponse.json(
+        { error: 'Error al unirse a la clase' },
+        { status: 500 }
+      )
     }
 
-    return NextResponse.json({ 
-      message: 'Te has unido exitosamente',
-      class: { id: classData.id, name: classData.name }
-    }, { status: 200 })
+    return NextResponse.json(
+      {
+        message: 'Te has unido exitosamente',
+        class: { id: classData.id, name: classData.name }
+      },
+      { status: 200 }
+    )
 
   } catch (error) {
     console.error('Unexpected error:', error)
-    return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 })
+
+    return NextResponse.json(
+      { error: 'Error interno del servidor' },
+      { status: 500 }
+    )
   }
 }

@@ -34,6 +34,7 @@ export const ELEMENT_ICONS: Record<string, string> = {
   conduit_pvc: "〰",
   conduit_emt: "═",
   cable_tray: "▬",
+  power_source: "🔋",
 };
 
 export const ELEMENT_LABELS: Record<string, string> = {
@@ -46,6 +47,7 @@ export const ELEMENT_LABELS: Record<string, string> = {
   conduit_pvc: "Tubería PVC",
   conduit_emt: "Tubería EMT",
   cable_tray: "Canaleta",
+  power_source: "Fuente eléctrica",
 };
 
 export const PALETTE_GROUPS = [
@@ -56,6 +58,10 @@ export const PALETTE_GROUPS = [
   {
     cat: "Tomacorrientes (RF-06)",
     items: ["outlet"],
+  },
+  {
+    cat: "Fuentes",
+    items: ["power_source"],
   },
   {
     cat: "Tablero (RF-07)",
