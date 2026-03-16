@@ -23,7 +23,7 @@ export default function ClassLayout({
     >
       <AppHeader onMenuToggle={() => setShowSidebar((p) => !p)} />
 
-      <div className="flex">
+      <div className="flex items-start min-h-[calc(100vh-64px)]">
         {/* Mobile overlay */}
         {showSidebar && (
           <div
@@ -33,13 +33,13 @@ export default function ClassLayout({
         )}
 
         {/* Sidebar */}
-        <aside
-          className={`
-            fixed top-16 left-0 z-[45] transition-transform duration-300
-            lg:static lg:top-auto lg:translate-x-0
-            ${showSidebar ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-          `}
-        >
+<aside
+  className={`
+    fixed top-16 left-0 z-[45] h-[calc(100vh-64px)] transition-transform duration-300
+    lg:sticky lg:top-16 lg:h-[calc(100vh-64px)] lg:translate-x-0 lg:self-start lg:overflow-y-auto
+    ${showSidebar ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+  `}
+>
           <AppSidebar activeItem="tareas" />
         </aside>
 

@@ -810,11 +810,20 @@ export default function ClassroomDashboard() {
           top: 64px;
           left: 0;
           z-index: 45;
+          height: calc(100vh - 64px);
+          overflow-y: auto;
           transition: transform 0.3s ease;
         }
 
         @media (min-width: 1024px) {
-          .lms-sidebar-mobile { position: sticky; transform: none !important; }
+          .lms-sidebar-mobile {
+            position: sticky;
+            top: 64px;
+            height: calc(100vh - 64px);
+            overflow-y: auto;
+            align-self: flex-start;
+            transform: none !important;
+          }
         }
 
         /* ── Responsive ── */
@@ -941,7 +950,7 @@ export default function ClassroomDashboard() {
           </div>
         </header>
 
-        <div style={{ display: 'flex' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', minHeight: 'calc(100vh - 64px)' }}>
           {/* Mobile overlay */}
           {showSidebar && (
             <div className="lms-mobile-overlay" onClick={() => setShowSidebar(false)} />
