@@ -1976,7 +1976,7 @@ export default function HouseSimulator() {
         ))}
 
         {activeTab === "circuits" && (
-          <div style={{ padding:12 }}>
+<div style={{ padding:12 }}>
             <div style={{ fontSize:8, color:U.dim, marginBottom:7, fontFamily:"monospace" }}>NUEVO CIRCUITO</div>
             <input
               value={ncn}
