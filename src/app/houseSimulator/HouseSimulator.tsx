@@ -11,13 +11,14 @@ export type ElementType =
   | "light" | "outlet" | "switch"
   | "panel_breaker" | "panel_differential"
   | "ground_rod" | "conduit_pvc" | "conduit_emt" | "cable_tray"
-  | "smoke_detector" | "fan";
+  | "smoke_detector" | "fan" | "power_source";
 
 export type RoomType =
   | "living" | "bedroom" | "kitchen" | "bathroom"
   | "garage" | "office" | "dining";
 
 export type CircuitType = "lighting" | "outlet" | "ground";
+export type ConductorType = "phase" | "neutral" | "ground";
 
 export type ViewTarget = "exterior" | "interior";
 
@@ -60,7 +61,7 @@ export interface Wire {
   fromElementId: string;
   toElementId: string;
   circuitId: string;
-  isGroundWire: boolean;
+  conductorType: ConductorType;
   path: number[];
 }
 
@@ -115,6 +116,7 @@ const ELEMENT_LABELS: Record<ElementType, string> = {
   cable_tray: "Canaleta",
   smoke_detector: "Detector Humo",
   fan: "Ventilador",
+  power_source: "Fuente eléctrica",
 };
 
 // Emojis kept only for palette sidebar and text lists
@@ -124,12 +126,14 @@ const ELEMENT_ICONS: Record<ElementType, string> = {
   ground_rod: "⏚", conduit_pvc: "〰",
   conduit_emt: "═", cable_tray: "▬",
   smoke_detector: "🔔", fan: "🌀",
+  power_source: "🔋",
 };
 
 interface PaletteGroup { cat: string; items: ElementType[]; }
 const PALETTE_GROUPS: PaletteGroup[] = [
   { cat: "Iluminación (RF-06)", items: ["light", "switch", "fan"] },
   { cat: "Tomacorrientes (RF-06)", items: ["outlet"] },
+  { cat: "Fuentes", items: ["power_source"] },
   { cat: "Seguridad", items: ["smoke_detector"] },
   { cat: "Tablero (RF-07)", items: ["panel_breaker", "panel_differential"] },
   { cat: "Canalización (RF-08)", items: ["conduit_pvc", "conduit_emt", "cable_tray"] },
@@ -169,7 +173,19 @@ const DEFAULT_ROOMS: Room[] = [
 
 const INITIAL: AppState = {
   rooms: DEFAULT_ROOMS,
-  elements: [],
+  elements: [
+    {
+      id: "source-grid",
+      type: "power_source",
+      roomId: null,
+      x: -120,
+      y: 160,
+      circuitId: null,
+      label: "Red eléctrica",
+      isOn: true,
+      isGrounded: false,
+    },
+  ],
   circuits: [],
   wires: [],
   selectedRoomId: null,
@@ -377,6 +393,20 @@ function FanSVG({ active }: { active?: boolean }) {
   );
 }
 
+function PowerSourceSVG({ active }: { active?: boolean }) {
+  const c = active ? "#4ade80" : "#94a3b8";
+  return (
+    <g>
+      <rect x="10" y="16" width="34" height="24" rx="3" fill="rgba(15,23,42,0.9)" stroke={c} strokeWidth="2"/>
+      <rect x="44" y="22" width="4" height="12" rx="1" fill={c}/>
+      <rect x="16" y="22" width="10" height="12" rx="1" fill={c} opacity="0.8"/>
+      <rect x="30" y="22" width="10" height="12" rx="1" fill={c} opacity="0.4"/>
+      <line x1="20" y1="44" x2="26" y2="44" stroke={c} strokeWidth="2"/>
+      <line x1="32" y1="44" x2="38" y2="44" stroke={c} strokeWidth="2"/>
+    </g>
+  );
+}
+
 function ElementSVG({ type, active, isOn }: { type: ElementType; active?: boolean; isOn?: boolean }) {
   switch (type) {
     case "light":              return <LightSVG active={active}/>;
@@ -390,6 +420,7 @@ function ElementSVG({ type, active, isOn }: { type: ElementType; active?: boolea
     case "cable_tray":         return <CableTravSVG active={active}/>;
     case "smoke_detector":     return <SmokeDetectorSVG active={active}/>;
     case "fan":                return <FanSVG active={active}/>;
+    case "power_source":       return <PowerSourceSVG active={active}/>;
     default:                   return null;
   }
 }
@@ -416,30 +447,202 @@ function polyPts(pts: IsoPoint[]): string {
 
 // ─── Power Logic ───────────────────────────────────────────────────────────────
 
-function isPowered(
-  el: ElectricalElement,
-  elements: ElectricalElement[],
-  wires: Wire[],
-  circuits: Circuit[],
-): boolean {
-  if (!["light", "fan", "smoke_detector", "outlet"].includes(el.type)) return false;
-  if (!el.circuitId) return false;
-  const c = circuits.find(c => c.id === el.circuitId);
-  if (!c || !c.breakerId) return false;
-  return wires.some(w => w.fromElementId === el.id || w.toElementId === el.id);
+export type PowerInfo = {
+  activeWires: Set<string>;
+  poweredLoads: Set<string>;
+  energizedCircuits: Set<string>;
+  phaseConnected: Set<string>;
+  neutralConnected: Set<string>;
+  groundConnected: Set<string>;
+};
+
+function buildComponents(wires: Wire[]): { comps: Array<Set<string>>; compByNode: Map<string, number> } {
+  const adj = new Map<string, Set<string>>();
+  const addEdge = (a: string, b: string): void => {
+    if (!adj.has(a)) adj.set(a, new Set());
+    adj.get(a)!.add(b);
+  };
+
+  wires.forEach(w => {
+    addEdge(w.fromElementId, w.toElementId);
+    addEdge(w.toElementId, w.fromElementId);
+  });
+
+  const visited = new Set<string>();
+  const compByNode = new Map<string, number>();
+  const comps: Array<Set<string>> = [];
+  const nodeIds = Array.from(adj.keys());
+
+  nodeIds.forEach(startId => {
+    if (visited.has(startId)) return;
+    const stack = [startId];
+    visited.add(startId);
+    const comp = new Set<string>();
+    while (stack.length > 0) {
+      const cur = stack.pop() as string;
+      comp.add(cur);
+      compByNode.set(cur, comps.length);
+      adj.get(cur)?.forEach(next => {
+        if (!visited.has(next)) {
+          visited.add(next);
+          stack.push(next);
+        }
+      });
+    }
+    comps.push(comp);
+  });
+
+  return { comps, compByNode };
 }
 
-function getActiveWires(
+export function buildPowerInfo(
   elements: ElectricalElement[],
   wires: Wire[],
   circuits: Circuit[],
-): Set<string> {
-  const s = new Set<string>();
-  wires.forEach(w => {
-    const c = circuits.find(c => c.id === w.circuitId);
-    if (c?.breakerId) s.add(w.id);
+): PowerInfo {
+  const poweredLoads = new Set<string>();
+  const activeWires = new Set<string>();
+  const energizedCircuits = new Set<string>();
+  const phaseConnected = new Set<string>();
+  const neutralConnected = new Set<string>();
+  const groundConnected = new Set<string>();
+
+  const sources = elements.filter(e => e.type === "power_source").map(e => e.id);
+
+  const groundAll = buildComponents(wires.filter(w => w.conductorType === "ground"));
+  const groundSupplyCompIds = new Set<number>();
+  elements.forEach(el => {
+    if (el.type === "ground_rod") {
+      const cid = groundAll.compByNode.get(el.id);
+      if (cid !== undefined) groundSupplyCompIds.add(cid);
+    }
   });
-  return s;
+
+  const wireByCircuit = new Map<string, Wire[]>();
+  wires.forEach(w => {
+    if (!w.circuitId) return;
+    if (!wireByCircuit.has(w.circuitId)) wireByCircuit.set(w.circuitId, []);
+    wireByCircuit.get(w.circuitId)!.push(w);
+  });
+
+  circuits.forEach(c => {
+    if (!c.breakerId) return;
+    const breakerEl = elements.find(e => e.id === c.breakerId) ?? null;
+    if (!breakerEl?.isOn) return;
+    const cWires = wireByCircuit.get(c.id) ?? [];
+    if (cWires.length === 0) return;
+
+    const phaseWires = cWires.filter(w => w.conductorType === "phase");
+    const neutralWires = cWires.filter(w => w.conductorType === "neutral");
+    const phase = buildComponents(phaseWires);
+    const neutral = buildComponents(neutralWires);
+
+    const breakerComp = phase.compByNode.get(c.breakerId);
+    if (breakerComp === undefined) return;
+
+    const phaseHasSource = sources.some(sid => phase.compByNode.get(sid) === breakerComp);
+    if (!phaseHasSource) return;
+
+    const neutralSupplyCompIds = new Set<number>();
+    sources.forEach(sid => {
+      const cid = neutral.compByNode.get(sid);
+      if (cid !== undefined) neutralSupplyCompIds.add(cid);
+    });
+    const hasNeutralSupply = neutralSupplyCompIds.size > 0;
+
+    energizedCircuits.add(c.id);
+
+    const switchesOnByPhaseComp = new Set<number>();
+    elements.forEach(el => {
+      if (el.type === "switch" && el.isOn) {
+        const cid = phase.compByNode.get(el.id);
+        if (cid !== undefined) switchesOnByPhaseComp.add(cid);
+      }
+    });
+
+    const loadEls = elements.filter(el =>
+      el.circuitId === c.id &&
+      (el.type === "light" || el.type === "fan" || el.type === "outlet" || el.type === "smoke_detector"),
+    );
+
+    const poweredInCircuit: string[] = [];
+    loadEls.forEach(el => {
+      const pComp = phase.compByNode.get(el.id);
+      const nComp = neutral.compByNode.get(el.id);
+      const phaseOk = pComp !== undefined && pComp === breakerComp;
+      const neutralOk = hasNeutralSupply && nComp !== undefined && neutralSupplyCompIds.has(nComp);
+
+      if (phaseOk) phaseConnected.add(el.id);
+      if (neutralOk) neutralConnected.add(el.id);
+
+      if (el.type === "outlet" || el.type === "smoke_detector") {
+        if (phaseOk && neutralOk) {
+          poweredLoads.add(el.id);
+          poweredInCircuit.push(el.id);
+        }
+      } else {
+        const switchOk = pComp !== undefined && switchesOnByPhaseComp.has(pComp);
+        if (phaseOk && neutralOk && switchOk) {
+          poweredLoads.add(el.id);
+          poweredInCircuit.push(el.id);
+        }
+      }
+    });
+
+    loadEls.forEach(el => {
+      const gComp = groundAll.compByNode.get(el.id);
+      if (gComp !== undefined && groundSupplyCompIds.has(gComp)) {
+        groundConnected.add(el.id);
+      }
+    });
+
+    if (poweredInCircuit.length > 0) {
+      phaseWires.forEach(w => {
+        const a = phase.compByNode.get(w.fromElementId);
+        const b = phase.compByNode.get(w.toElementId);
+        if (a !== undefined && b !== undefined && a === b && a === breakerComp) {
+          activeWires.add(w.id);
+        }
+      });
+
+      const activeNeutralComps = new Set<number>();
+      poweredInCircuit.forEach(id => {
+        const cid = neutral.compByNode.get(id);
+        if (cid !== undefined) activeNeutralComps.add(cid);
+      });
+      neutralWires.forEach(w => {
+        const a = neutral.compByNode.get(w.fromElementId);
+        const b = neutral.compByNode.get(w.toElementId);
+        if (a !== undefined && b !== undefined && a === b && activeNeutralComps.has(a)) {
+          activeWires.add(w.id);
+        }
+      });
+    }
+  });
+
+  return { activeWires, poweredLoads, energizedCircuits, phaseConnected, neutralConnected, groundConnected };
+}
+
+export function isPowered(el: ElectricalElement, power: PowerInfo): boolean {
+  return power.poweredLoads.has(el.id);
+}
+
+function inferWireCircuitId(
+  fe: ElectricalElement,
+  te: ElectricalElement,
+  circuits: Circuit[],
+): string {
+  const direct = fe.circuitId ?? te.circuitId ?? "";
+  if (direct) return direct;
+  const breakerId =
+    fe.type === "panel_breaker" ? fe.id :
+    te.type === "panel_breaker" ? te.id :
+    null;
+  if (breakerId) {
+    const circ = circuits.find(c => c.breakerId === breakerId);
+    if (circ) return circ.id;
+  }
+  return "";
 }
 
 // ─── Validation ────────────────────────────────────────────────────────────────
@@ -613,19 +816,25 @@ interface MultimeterPanelProps {
   elements: ElectricalElement[];
   wires: Wire[];
   circuits: Circuit[];
+  power: PowerInfo;
 }
 
-function MultimeterPanel({ selEl, elements, wires, circuits }: MultimeterPanelProps) {
-  const powered  = isPowered(selEl, elements, wires, circuits);
+function MultimeterPanel({ selEl, elements, wires, circuits, power }: MultimeterPanelProps) {
+  const powered  = isPowered(selEl, power);
   const c        = circuits.find(c => c.id === selEl.circuitId) ?? null;
   const breakerEl = c?.breakerId ? elements.find(e => e.id === c.breakerId) ?? null : null;
   const connWires = wires.filter(w => w.fromElementId === selEl.id || w.toElementId === selEl.id);
-  const hasGround = selEl.isGrounded || connWires.some(w => w.isGroundWire);
+  const hasGround = selEl.isGrounded || connWires.some(w => w.conductorType === "ground");
+  const phaseOk = power.phaseConnected.has(selEl.id);
+  const neutralOk = power.neutralConnected.has(selEl.id);
+  const groundOk = power.groundConnected.has(selEl.id) || hasGround;
 
   const rows: Array<{ label: string; val: string; ok: boolean }> = [
     { label:"Voltaje",     val:powered ? "120 V" : "0 V",                              ok:powered },
+    { label:"Fase",        val:phaseOk ? "✓ Conectada" : "✗ Ausente",                  ok:phaseOk },
+    { label:"Neutro",      val:neutralOk ? "✓ Conectado" : "✗ Ausente",                ok:neutralOk },
     { label:"Continuidad", val:connWires.length > 0 ? "OK" : "Abierto",               ok:connWires.length > 0 },
-    { label:"Tierra",      val:hasGround ? "✓ Conectada" : "✗ Ausente",               ok:hasGround },
+    { label:"Tierra",      val:groundOk ? "✓ Conectada" : "✗ Ausente",                 ok:groundOk },
     { label:"Polaridad",   val:c ? "Correcta" : "N/A",                                ok:!!c },
     { label:"Circuito",    val:c?.name ?? "Sin asignar",                               ok:!!c },
     { label:"Protección",  val:breakerEl ? `${breakerEl.rating ?? 20}A` : "Sin breaker", ok:!!breakerEl },
@@ -753,7 +962,7 @@ interface CrossRoomSelectorProps {
 function CrossRoomSelector({ fromEl, elements, rooms, circuits, onConnect, onCancel }: CrossRoomSelectorProps) {
   const [selId, setSelId] = useState<string | null>(null);
   const U = { bdr:"#1e293b", txt:"#94a3b8", acc:"#4a9eff", accBg:"rgba(74,158,255,0.08)", dim:"#3a5070" };
-  const others = elements.filter(e => e.roomId && e.roomId !== fromEl.roomId && e.id !== fromEl.id);
+  const others = elements.filter(e => e.roomId !== fromEl.roomId && e.id !== fromEl.id);
 
   return (
     <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.85)", zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center" }}>
@@ -774,7 +983,7 @@ function CrossRoomSelector({ fromEl, elements, rooms, circuits, onConnect, onCan
                     <div style={{ flex:1 }}>
                       <div style={{ fontSize:10, color:isSel?U.acc:U.txt, fontFamily:"monospace" }}>{el.label}</div>
                       <div style={{ fontSize:8, color:U.dim, fontFamily:"monospace" }}>
-                        {rooms.find(r => r.id === el.roomId)?.name ?? "?"} · {el.type}
+                        {(el.roomId ? rooms.find(r => r.id === el.roomId)?.name : "Tablero") ?? "?"} · {el.type}
                       </div>
                     </div>
                     {isSel && <span style={{ color:U.acc }}>✓</span>}
@@ -808,20 +1017,18 @@ interface HouseViewProps {
   selectedElId: string | null;
   onElementClick: (id: string) => void;
   onPanelDrop: (type: ElementType) => void;
+  power: PowerInfo;
 }
 
 function HouseView({
   rooms, onRoomClick, allElements, allWires, circuits,
-  panelEls, selectedElId, onElementClick, onPanelDrop,
+  panelEls, selectedElId, onElementClick, onPanelDrop, power,
 }: HouseViewProps) {
   const [hov, setHov] = useState<string | null>(null);
   const [panelOver, setPanelOver] = useState(false);
 
   const S = 2.2, WH = 44;
-  const activeWires = useMemo(
-    () => getActiveWires(allElements, allWires, circuits),
-    [allElements, allWires, circuits],
-  );
+  const activeWires = power.activeWires;
 
   const rooms3d = useMemo<Room3D[]>(
     () => rooms.map(r => ({
@@ -870,7 +1077,7 @@ function HouseView({
     const s = RS[r.type];
     const isHov = hov === r.id;
     const hasPowered = allElements.some(
-      el => el.roomId === r.id && isPowered(el, allElements, allWires, circuits),
+      el => el.roomId === r.id && isPowered(el, power),
     );
     const fl = {
       TL: proj(r.x0,0,r.z0), TR: proj(r.x1,0,r.z0),
@@ -926,7 +1133,7 @@ function HouseView({
     );
   }
 
-  const PANEL_TYPES: ElementType[] = ["panel_breaker","panel_differential","ground_rod"];
+  const PANEL_TYPES: ElementType[] = ["panel_breaker","panel_differential","ground_rod","power_source"];
 
   return (
     <div style={{ width:"100%", height:"100%", position:"relative", overflow:"hidden" }}>
@@ -965,7 +1172,10 @@ function HouseView({
           const fpt = proj(fp.wx, 1.5, fp.wz);
           const tpt = proj(tp.wx, 1.5, tp.wz);
           const circ = circuits.find(c => c.id === w.circuitId);
-          const color = w.isGroundWire ? "#22c55e" : (circ?.color ?? "#6b7280");
+          const color =
+            w.conductorType === "ground" ? "#22c55e" :
+            w.conductorType === "neutral" ? "#38bdf8" :
+            (circ?.color ?? "#6b7280");
           const active = activeWires.has(w.id);
           const isCross = fe.roomId !== te.roomId;
           const d = `M ${fpt.sx} ${fpt.sy} L ${tpt.sx} ${tpt.sy}`;
@@ -976,7 +1186,7 @@ function HouseView({
           const wp = elWorldPos(el);
           if (!wp) return null;
           const p = proj(wp.wx, 2.5, wp.wz);
-          const powered = isPowered(el, allElements, allWires, circuits);
+          const powered = isPowered(el, power);
           const circ = circuits.find(c => c.id === el.circuitId);
           const isSel = selectedElId === el.id;
           const R = 9;
@@ -1011,13 +1221,15 @@ function HouseView({
         </div>
         {panelEls.length === 0 ? (
           <div style={{ fontSize:8, color:panelOver?"#f59e0b":"#b0a080", fontFamily:"monospace", textAlign:"center", padding:"9px 0", border:"1px dashed #d4c898", borderRadius:6 }}>
-            {panelOver ? "Suelta aquí ▼" : "Arrastra interruptores aquí"}
+            {panelOver ? "Suelta aquí ▼" : "Arrastra interruptores o fuentes aquí"}
           </div>
         ) : panelEls.map(el => (
           <div key={el.id} style={{ background:"#f8f2e4", border:`1px solid ${el.type==="panel_differential"?"#90c8a0":"#d4c898"}`, borderLeft:`3px solid ${el.type==="panel_differential"?"#22c55e":"#f59e0b"}`, borderRadius:5, padding:"5px 9px", marginBottom:4, display:"flex", gap:6, alignItems:"center" }}>
             <span style={{ fontSize:16 }}>{ELEMENT_ICONS[el.type]}</span>
             <span style={{ fontSize:8, color:"#706040", fontFamily:"monospace", flex:1 }}>{el.label}</span>
-            <span style={{ fontSize:9, color:"#a87010", fontFamily:"monospace", fontWeight:"bold" }}>{el.rating ?? 20}A</span>
+            <span style={{ fontSize:9, color:"#a87010", fontFamily:"monospace", fontWeight:"bold" }}>
+              {(el.type === "panel_breaker" || el.type === "panel_differential") ? `${el.rating ?? 20}A` : "Fuente"}
+            </span>
           </div>
         ))}
       </div>
@@ -1041,6 +1253,7 @@ interface RoomViewProps {
   wires: Wire[];
   circuits: Circuit[];
   rooms: Room[];
+  power: PowerInfo;
   onDrop: (type: ElementType, x: number, y: number) => void;
   onElementClick: (id: string) => void;
   onElementMove: (id: string, x: number, y: number) => void;
@@ -1054,7 +1267,7 @@ interface RoomViewProps {
 }
 
 function RoomView({
-  room, elements, wires, circuits, rooms,
+  room, elements, wires, circuits, rooms, power,
   onDrop, onElementClick, onElementMove,
   onPortClick, selectedElId, pendingWireFrom,
   onCanvasClick, onCrossRoomWire,
@@ -1064,10 +1277,7 @@ function RoomView({
   const [dragPos, setDragPos]   = useState<DragPos | null>(null);
   const [mouse,   setMouse]     = useState<{ x: number; y: number }>({ x:600, y:400 });
 
-  const activeWires = useMemo(
-    () => getActiveWires(elements, wires, circuits),
-    [elements, wires, circuits],
-  );
+  const activeWires = power.activeWires;
   const roomEls = elements.filter(e => e.roomId === room.id);
   const s = RS[room.type];
 
@@ -1202,7 +1412,10 @@ function RoomView({
         if (!fe || !te) return null;
         if (fe.roomId !== room.id || te.roomId !== room.id) return null;
         const circ   = circuits.find(c => c.id === w.circuitId);
-        const color  = w.isGroundWire ? "#22c55e" : (circ?.color ?? "#6b7280");
+        const color =
+          w.conductorType === "ground" ? "#22c55e" :
+          w.conductorType === "neutral" ? "#38bdf8" :
+          (circ?.color ?? "#6b7280");
         const active = activeWires.has(w.id);
         const fx = dragPos?.id === fe.id ? dragPos.x : fe.x;
         const fy = dragPos?.id === fe.id ? dragPos.y : fe.y;
@@ -1225,7 +1438,10 @@ function RoomView({
         const lx = dragPos?.id === localEl.id ? dragPos.x : localEl.x;
         const ly = dragPos?.id === localEl.id ? dragPos.y : localEl.y;
         const circ   = circuits.find(c => c.id === w.circuitId);
-        const color  = w.isGroundWire ? "#22c55e" : (circ?.color ?? "#6b7280");
+        const color =
+          w.conductorType === "ground" ? "#22c55e" :
+          w.conductorType === "neutral" ? "#38bdf8" :
+          (circ?.color ?? "#6b7280");
         const active = activeWires.has(w.id);
         const edgeX  = lx < 600 ? 80 : 1120;
         return (
@@ -1257,7 +1473,7 @@ function RoomView({
 
       {/* Elements */}
       {roomEls.map(el => {
-        const powered = isPowered(el, elements, wires, circuits);
+        const powered = isPowered(el, power);
         const isSel   = selectedElId === el.id;
         const color   = circColor(el);
         const ex      = dragPos?.id === el.id ? dragPos.x : el.x;
@@ -1427,6 +1643,7 @@ export default function HouseSimulator() {
   // pwf format: "elId:left" | "elId:right" | null
   const [pwf,           setPWF]          = useState<string | null>(null);
   const [activeTab,     setActiveTab]    = useState<"elements" | "circuits" | "panel">("elements");
+  const [wireConductor, setWireConductor] = useState<ConductorType>("phase");
   const [ncn,           setNcn]          = useState<string>("");
   const [nct,           setNct]          = useState<CircuitType>("lighting");
   const [showRoomMgr,   setShowRoomMgr]  = useState(false);
@@ -1439,12 +1656,13 @@ export default function HouseSimulator() {
     : null;
   const selEl   = state.elements.find(e => e.id === state.selectedElementId) ?? null;
   const panelEls = state.elements.filter(e =>
-    (["panel_breaker","panel_differential"] as ElementType[]).includes(e.type),
+    (["panel_breaker","panel_differential","power_source"] as ElementType[]).includes(e.type),
   );
-  const activeWiresSet = useMemo(
-    () => getActiveWires(state.elements, state.wires, state.circuits),
-    [state],
+  const powerInfo = useMemo(
+    () => buildPowerInfo(state.elements, state.wires, state.circuits),
+    [state.elements, state.wires, state.circuits],
   );
+  const activeWiresSet = powerInfo.activeWires;
 
   const go = useCallback((id: string): void => {
     setState(s => ({ ...s, selectedRoomId:id, viewTarget:"interior", selectedElementId:null }));
@@ -1463,7 +1681,7 @@ export default function HouseSimulator() {
         id: uid(), type, roomId, x, y,
         circuitId: null,
         label: ELEMENT_LABELS[type],
-        isOn: false, isGrounded: false,
+        isOn: type === "power_source", isGrounded: false,
         rating: (["panel_breaker","panel_differential"] as ElementType[]).includes(type) ? 20 : undefined,
       }],
     }));
@@ -1504,21 +1722,22 @@ export default function HouseSimulator() {
     const te = state.elements.find(e => e.id === elId);
     if (!fe || !te) { setPWF(null); return; }
 
-    const cid = fe.circuitId ?? te.circuitId ?? "";
-    const gnd = fe.type === "ground_rod" || te.type === "ground_rod";
+    const cid = inferWireCircuitId(fe, te, state.circuits);
+    const isGround = fe.type === "ground_rod" || te.type === "ground_rod";
+    const conductor: ConductorType = isGround ? "ground" : wireConductor;
 
     setState(s => ({
       ...s,
       wires: [...s.wires, {
         id: uid(), fromElementId: fromElId, toElementId: elId,
-        circuitId: cid, isGroundWire: gnd, path: [],
+        circuitId: cid, conductorType: conductor, path: [],
       }],
-      elements: gnd
+      elements: conductor === "ground"
         ? s.elements.map(e => (e.id === elId || e.id === fromElId) ? { ...e, isGrounded:true } : e)
         : s.elements,
     }));
     setPWF(null);
-  }, [pwf, state.elements]);
+  }, [pwf, state.elements, state.circuits, wireConductor]);
 
   // For cross-room wire
   const handleCrossRoomConnect = useCallback((toId: string): void => {
@@ -1530,21 +1749,22 @@ export default function HouseSimulator() {
     const te = state.elements.find(e => e.id === toId);
     if (!fe || !te) { setPWF(null); setShowCrossRoom(false); return; }
 
-    const cid = fe.circuitId ?? te.circuitId ?? "";
-    const gnd = fe.type === "ground_rod" || te.type === "ground_rod";
+    const cid = inferWireCircuitId(fe, te, state.circuits);
+    const isGround = fe.type === "ground_rod" || te.type === "ground_rod";
+    const conductor: ConductorType = isGround ? "ground" : wireConductor;
 
     setState(s => ({
       ...s,
       wires: [...s.wires, {
         id: uid(), fromElementId: fromElId, toElementId: toId,
-        circuitId: cid, isGroundWire: gnd, path: [],
+        circuitId: cid, conductorType: conductor, path: [],
       }],
-      elements: gnd
+      elements: conductor === "ground"
         ? s.elements.map(e => (e.id === toId || e.id === fromElId) ? { ...e, isGrounded:true } : e)
         : s.elements,
     }));
     setPWF(null); setShowCrossRoom(false);
-  }, [pwf, state.elements]);
+  }, [pwf, state.elements, state.circuits, wireConductor]);
 
   const delEl = useCallback((id: string): void => {
     setState(s => ({
@@ -1600,6 +1820,11 @@ export default function HouseSimulator() {
     setState(s => ({
       ...s,
       circuits: s.circuits.map(c => c.id === cid ? { ...c, breakerId:bid, isProtected:true } : c),
+      wires: s.wires.map(w =>
+        (w.fromElementId === bid || w.toElementId === bid) && !w.circuitId
+          ? { ...w, circuitId:cid }
+          : w,
+      ),
     }));
   }, []);
 
@@ -1643,6 +1868,11 @@ export default function HouseSimulator() {
     bg:"#080e1a", side:"#060d1a", bdr:"#1e293b",
     txt:"#94a3b8", dim:"#58677b", acc:"#4a9eff",
     accBg:"rgba(74,158,255,0.08)",
+  };
+  const conductorColors: Record<ConductorType, string> = {
+    phase: "#f59e0b",
+    neutral: "#38bdf8",
+    ground: "#22c55e",
   };
   const scoreColor = score >= 80 ? "#4ade80" : score >= 60 ? "#f59e0b" : "#ef4444";
 
@@ -1696,6 +1926,31 @@ export default function HouseSimulator() {
               {t === "elements" ? "ELEM" : t === "circuits" ? "CIRC" : "PANEL"}
             </button>
           ))}
+        </div>
+
+        <div style={{ padding:"8px 10px", borderBottom:`1px solid ${U.bdr}` }}>
+          <div style={{ fontSize:7, color:U.dim, marginBottom:6, fontFamily:"monospace", letterSpacing:"0.12em" }}>CONDUCTOR</div>
+          <div style={{ display:"flex", gap:6 }}>
+            {(["phase","neutral","ground"] as ConductorType[]).map(t => (
+              <button
+                key={t}
+                onClick={() => setWireConductor(t)}
+                style={{
+                  flex:1,
+                  background: wireConductor === t ? `${conductorColors[t]}22` : "transparent",
+                  border: `1px solid ${wireConductor === t ? conductorColors[t] : U.bdr}`,
+                  color: wireConductor === t ? conductorColors[t] : U.dim,
+                  fontSize:8,
+                  padding:"5px 0",
+                  borderRadius:6,
+                  cursor:"pointer",
+                  fontFamily:"monospace",
+                }}
+              >
+                {t === "phase" ? "FASE" : t === "neutral" ? "NEUTRO" : "TIERRA"}
+              </button>
+            ))}
+          </div>
         </div>
 
         {activeTab === "elements" && PALETTE_GROUPS.map(g => (
@@ -1782,7 +2037,9 @@ export default function HouseSimulator() {
                   ))}
                 </select>
                 {c.breakerId && (
-                  <div style={{ marginTop:4, fontSize:7, color:"#4ade80", fontFamily:"monospace" }}>✓ Protegido · Electrones activos</div>
+                  powerInfo.energizedCircuits.has(c.id)
+                    ? <div style={{ marginTop:4, fontSize:7, color:"#4ade80", fontFamily:"monospace" }}>✓ Protegido · Electrones activos</div>
+                    : <div style={{ marginTop:4, fontSize:7, color:"#f59e0b", fontFamily:"monospace" }}>✓ Protegido · Sin energía</div>
                 )}
               </div>
             ))}
@@ -1803,16 +2060,16 @@ export default function HouseSimulator() {
               ? `📐 ${room.name.toUpperCase()} — Instalación eléctrica`
               : "📐 PLANTA — Clic en habitación para instalar"}
           </div>
-          {state.circuits.filter(c => c.breakerId).length > 0 && (
+          {powerInfo.energizedCircuits.size > 0 && (
             <div style={{ marginLeft:"auto", display:"flex", alignItems:"center", gap:6, background:"rgba(74,222,128,0.1)", border:"1px solid rgba(74,222,128,0.4)", padding:"3px 10px", borderRadius:12 }}>
               <span style={{ width:6, height:6, borderRadius:"50%", background:"#4ade80", display:"inline-block" }}/>
               <span style={{ fontSize:8, color:"#4ade80", fontFamily:"monospace" }}>
-                {state.circuits.filter(c => c.breakerId).length} circuitos energizados
+                {powerInfo.energizedCircuits.size} circuitos energizados
               </span>
             </div>
           )}
           {pwf && (
-            <div style={{ marginLeft: state.circuits.filter(c => c.breakerId).length > 0 ? 0 : "auto", background:"rgba(245,158,11,0.1)", border:"1px solid #f59e0b", color:"#f59e0b", fontSize:9, padding:"3px 14px", borderRadius:12, fontFamily:"monospace" }}>
+            <div style={{ marginLeft: powerInfo.energizedCircuits.size > 0 ? 0 : "auto", background:"rgba(245,158,11,0.1)", border:"1px solid #f59e0b", color:"#f59e0b", fontSize:9, padding:"3px 14px", borderRadius:12, fontFamily:"monospace" }}>
               ● Toca puerto destino · ESC cancela
             </div>
           )}
@@ -1826,6 +2083,7 @@ export default function HouseSimulator() {
               panelEls={panelEls} selectedElId={state.selectedElementId}
               onElementClick={id => setState(s => ({ ...s, selectedElementId: s.selectedElementId === id ? null : id }))}
               onPanelDrop={t => drop(t, 0, 0, null)}
+              power={powerInfo}
             />
           ) : room ? (
             <RoomView
@@ -1841,6 +2099,7 @@ export default function HouseSimulator() {
               onCanvasClick={() => { if (pwf) setPWF(null); else setState(s => ({ ...s, selectedElementId:null })); }}
               onCrossRoomWire={() => setShowCrossRoom(true)}
               onToggle={toggleEl}
+              power={powerInfo}
             />
           ) : null}
         </div>
@@ -1868,10 +2127,10 @@ export default function HouseSimulator() {
           {([
             { label:"Habitaciones",   value:state.rooms.length,                                                                           color:"#60a5fa" },
             { label:"Luminarias",     value:state.elements.filter(e => e.type === "light").length,                                        color:"#fbbf24" },
-            { label:"  energizadas",  value:state.elements.filter(e => isPowered(e, state.elements, state.wires, state.circuits)).length,  color:"#4ade80" },
+            { label:"  energizadas",  value:state.elements.filter(e => isPowered(e, powerInfo)).length,                                  color:"#4ade80" },
             { label:"Tomacorrientes", value:state.elements.filter(e => e.type === "outlet").length,                                       color:"#60a5fa" },
             { label:"Circuitos",      value:state.circuits.length,                                                                        color:"#a78bfa" },
-            { label:"  energizados",  value:state.circuits.filter(c => !!c.breakerId).length,                                             color:"#4ade80" },
+            { label:"  energizados",  value:powerInfo.energizedCircuits.size,                                                             color:"#4ade80" },
             { label:"Cables",         value:state.wires.length,                                                                           color:"#64748b" },
             { label:"  con corriente",value:activeWiresSet.size,                                                                          color:"#4ade80" },
           ] satisfies Array<{ label: string; value: number; color: string }>).map(row => (
@@ -1905,7 +2164,7 @@ export default function HouseSimulator() {
             {/* Icon preview */}
             <div style={{ display:"flex", justifyContent:"center", marginBottom:10, background:"rgba(255,255,255,0.03)", border:`1px solid ${U.bdr}`, borderRadius:8, padding:10 }}>
               <svg width="56" height="56" viewBox="0 0 56 56">
-                <ElementSVG type={selEl.type} active={isPowered(selEl, state.elements, state.wires, state.circuits)} isOn={selEl.isOn}/>
+                <ElementSVG type={selEl.type} active={isPowered(selEl, powerInfo)} isOn={selEl.isOn}/>
               </svg>
             </div>
 
@@ -1915,14 +2174,14 @@ export default function HouseSimulator() {
 
             {/* Power status */}
             {(["light","fan","smoke_detector","outlet"] as ElementType[]).includes(selEl.type) && (() => {
-              const on = isPowered(selEl, state.elements, state.wires, state.circuits);
+              const on = isPowered(selEl, powerInfo);
               return (
                 <div style={{ marginBottom:10, padding:"6px 10px", background:on?"rgba(74,222,128,0.1)":"rgba(239,68,68,0.07)", border:`1px solid ${on?"#4ade80":"#ef4444"}`, borderRadius:6 }}>
                   <div style={{ fontSize:9, color:on?"#4ade80":"#ef4444", fontWeight:"bold" }}>
                     {on ? "✓ ALIMENTADO" : "✗ Sin alimentación"}
                   </div>
                   <div style={{ fontSize:7, color:U.dim, marginTop:2 }}>
-                    {on ? "Electrones fluyendo" : "Necesita: circuito + interruptor + cable"}
+                    {on ? "Electrones fluyendo" : "Necesita: fuente + breaker + fase + neutro (+ interruptor)"}
                   </div>
                 </div>
               );
@@ -1973,6 +2232,14 @@ export default function HouseSimulator() {
                 style={{ width:"100%", marginBottom:7, background:selEl.isOn?"rgba(74,222,128,0.1)":"rgba(239,68,68,0.07)", border:`1px solid ${selEl.isOn?"#4ade80":"#ef4444"}`, color:selEl.isOn?"#4ade80":"#ef4444", fontSize:9, padding:"5px", borderRadius:6, cursor:"pointer" }}
               >
                 {selEl.isOn ? "● ON → clic para apagar" : "○ OFF → clic para encender"}
+              </button>
+            )}
+            {selEl.type === "panel_breaker" && (
+              <button
+                onClick={() => toggleEl(selEl.id)}
+                style={{ width:"100%", marginBottom:7, background:selEl.isOn?"rgba(74,222,128,0.1)":"rgba(239,68,68,0.07)", border:`1px solid ${selEl.isOn?"#4ade80":"#ef4444"}`, color:selEl.isOn?"#4ade80":"#ef4444", fontSize:9, padding:"5px", borderRadius:6, cursor:"pointer" }}
+              >
+                {selEl.isOn ? "● BREAKER ON → clic para apagar" : "○ BREAKER OFF → clic para encender"}
               </button>
             )}
 
@@ -2028,7 +2295,7 @@ export default function HouseSimulator() {
               );
             })()}
 
-            <MultimeterPanel selEl={selEl} elements={state.elements} wires={state.wires} circuits={state.circuits}/>
+            <MultimeterPanel selEl={selEl} elements={state.elements} wires={state.wires} circuits={state.circuits} power={powerInfo}/>
           </div>
         ) : (
           <div style={{ padding:"14px", fontSize:10, color:U.dim, lineHeight:1.6 }}>
@@ -2040,9 +2307,10 @@ export default function HouseSimulator() {
             <div>• ESC → cancelar cable</div>
             <div>• ⌁ → cable inter-habitación</div>
             <div style={{ color:U.txt, marginTop:8 }}>Electrones activos si:</div>
-            <div>• Circuito creado</div>
-            <div>• + Interruptor asignado</div>
-            <div>• + Cable conectado</div>
+            <div>• Fuente conectada</div>
+            <div>• + Breaker asignado</div>
+            <div>• + Fase y neutro conectados</div>
+            <div>• + Interruptor ON (luces/ventiladores)</div>
           </div>
         )}
 

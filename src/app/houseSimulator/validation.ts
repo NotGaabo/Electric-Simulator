@@ -145,7 +145,7 @@ export function validateInstallation(state: HouseState): ValidationError[] {
   // CORRECCIÓN Bug 4: verificar también si hay cable de tierra conectado, no solo el flag
   for (const outlet of outlets) {
     const hasGroundWire = wires.some(w =>
-      (w.fromElementId === outlet.id || w.toElementId === outlet.id) && w.isGroundWire
+      (w.fromElementId === outlet.id || w.toElementId === outlet.id) && w.conductorType === "ground"
     );
     if (!outlet.isGrounded && !hasGroundWire) {
       errors.push(makeError("warning", "RF-09",
@@ -189,7 +189,7 @@ export function validateInstallation(state: HouseState): ValidationError[] {
       return (
         el.isGrounded ||
         wires.some(w =>
-          (w.fromElementId === eid || w.toElementId === eid) && w.isGroundWire
+          (w.fromElementId === eid || w.toElementId === eid) && w.conductorType === "ground"
         )
       );
     });
