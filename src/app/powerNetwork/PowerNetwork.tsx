@@ -10,9 +10,75 @@ type PoleType = "wooden" | "concrete" | "metal";
 type VoltageLevel = "LV" | "MV";
 
 interface Pole { id: string; x: number; y: number; height: number; type: PoleType; hasAnchor: boolean; label: string; }
-interface Conductor { id: string; fromPoleId: string; toPoleId: string; type: ConductorType; tension: number; crossSection: number; protected: boolean; label: string; voltage: VoltageLevel; }
+interface Conductor { id: string; fromPoleId: string; toPoleId: string; type: ConductorType; tension: number; crossSection: number; protected: boolean; label: string; voltage: VoltageLevel; loadKW: number; pf: number; }
 interface Trench { id: string; x1: number; y1: number; x2: number; y2: number; depth: number; covered: boolean; }
-interface UGCable { id: string; trenchId: string; type: ConductorType; crossSection: number; label: string; hasConduit: boolean; hasMechanicalProtection: boolean; }
+interface UGCable { id: string; trenchId: string; type: ConductorType; crossSection: number; label: string; hasConduit: boolean; hasMechanicalProtection: boolean; loadKW: number; pf: number; }
+
+// ─── Electrical Calculation Engine ───────────────────────────────────────────
+// Resistivity ρ (Ω·mm²/m): aluminum=0.028, copper=0.0175
+const RESISTIVITY = { aluminum: 0.028, copper: 0.0175 };
+// Scale: each grid unit (40px) = 5 real metres
+const METRES_PER_GRID = 5;
+// Nominal voltages
+const NOMINAL_V: Record<VoltageLevel, number> = { LV: 230, MV: 15000 };
+// Max current capacity (A) by cross-section mm² for aluminum aerial, simplified
+const AMPACITY_AERIAL: Record<number, number> = {
+  16:70, 25:90, 35:110, 50:135, 70:165, 95:200, 120:230, 150:265, 185:300, 240:350,
+};
+const AMPACITY_UG: Record<number, number> = {
+  16:80, 25:105, 35:130, 50:160, 70:200, 95:240, 120:275, 150:315, 185:360, 240:420,
+};
+
+interface ElecCalc {
+  lengthM: number;       // span length in real meters (1 grid unit = 1m)
+  resistanceOhm: number; // conductor resistance Ω
+  currentA: number;      // load current A
+  voltageDropV: number;  // voltage drop V
+  voltageDropPct: number;// voltage drop %
+  voltageEndV: number;   // voltage at far end
+  powerLossW: number;    // I²R losses W
+  ampacity: number;      // max allowed current A
+  overloaded: boolean;   // current > ampacity
+  nominalV: number;
+}
+
+function calcConductor(c: Conductor, fromX: number, fromY: number, toX: number, toY: number): ElecCalc {
+  const lengthM = (dist(fromX, fromY, toX, toY) / GRID) * METRES_PER_GRID;
+  const rho = RESISTIVITY.aluminum;
+  const resistanceOhm = (rho * lengthM) / c.crossSection;
+  const nominalV = NOMINAL_V[c.voltage];
+  const isPhase = c.type === "phase_a" || c.type === "phase_b" || c.type === "phase_c";
+  if (!isPhase) {
+    return { lengthM, resistanceOhm: 0, currentA: 0, voltageDropV: 0, voltageDropPct: 0, voltageEndV: nominalV, powerLossW: 0, ampacity: AMPACITY_AERIAL[c.crossSection] ?? 100, overloaded: false, nominalV };
+  }
+  const kw = c.loadKW ?? 5;
+  const pf = c.pf ?? 0.9;
+  const currentA = (kw * 1000) / (nominalV * pf);
+  const voltageDropV = 2 * resistanceOhm * currentA; // single-phase: 2-way
+  const voltageDropPct = (voltageDropV / nominalV) * 100;
+  const voltageEndV = nominalV - voltageDropV;
+  const powerLossW = currentA * currentA * resistanceOhm;
+  const ampacity = AMPACITY_AERIAL[c.crossSection] ?? 100;
+  return { lengthM, resistanceOhm, currentA, voltageDropV, voltageDropPct, voltageEndV, powerLossW, ampacity, overloaded: currentA > ampacity, nominalV };
+}
+
+function calcUGCable(c: UGCable, trenchLengthM: number): ElecCalc {  const rho = RESISTIVITY.copper;
+  const resistanceOhm = (rho * trenchLengthM) / c.crossSection;
+  const nominalV = 230;
+  const isPhase = c.type === "phase_a" || c.type === "phase_b" || c.type === "phase_c";
+  if (!isPhase) {
+    return { lengthM: trenchLengthM, resistanceOhm: 0, currentA: 0, voltageDropV: 0, voltageDropPct: 0, voltageEndV: nominalV, powerLossW: 0, ampacity: AMPACITY_UG[c.crossSection] ?? 100, overloaded: false, nominalV };
+  }
+  const kw = c.loadKW ?? 5;
+  const pf = c.pf ?? 0.9;
+  const currentA = (kw * 1000) / (nominalV * pf);
+  const voltageDropV = 2 * resistanceOhm * currentA;
+  const voltageDropPct = (voltageDropV / nominalV) * 100;
+  const voltageEndV = nominalV - voltageDropV;
+  const powerLossW = currentA * currentA * resistanceOhm;
+  const ampacity = AMPACITY_UG[c.crossSection] ?? 100;
+  return { lengthM: trenchLengthM, resistanceOhm, currentA, voltageDropV, voltageDropPct, voltageEndV, powerLossW, ampacity, overloaded: currentA > ampacity, nominalV };
+}
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const GRID = 40;
@@ -172,7 +238,7 @@ export default function PowerNetwork() {
   const [condSection, setCondSection] = useState(35);
   const [showGrid, setShowGrid] = useState(true);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const [activePanel, setActivePanel] = useState<"palette" | "properties" | "analysis">("palette");
+  const [activePanel, setActivePanel] = useState<"palette" | "properties" | "analysis" | "calc">("palette");
   const svgRef = useRef<SVGSVGElement>(null);
 
   const getSVGCoords = useCallback((e: React.MouseEvent | MouseEvent) => {
@@ -217,7 +283,7 @@ export default function PowerNetwork() {
             const newC: Conductor = {
               id: uid(), fromPoleId: pendingPole, toPoleId: nearest.id,
               type: condType, tension: 55, crossSection: condSection,
-              protected: false, voltage: "LV",
+              protected: false, voltage: "LV", loadKW: 5, pf: 0.9,
               label: `C${conductors.length + 1}-${COND_LABELS[condType]}`,
             };
             setConductors(prev => [...prev, newC]);
@@ -243,29 +309,11 @@ export default function PowerNetwork() {
         return;
       }
       if (tool === "cable") {
-        const clickedTrench = trenches.find(t => {
-          const d = pointToSegmentDist(pos.x, pos.y, t.x1, t.y1, t.x2, t.y2);
-          return d < 20;
-        });
-        if (clickedTrench) {
-          const newCable: UGCable = {
-            id: uid(), trenchId: clickedTrench.id,
-            type: condType, crossSection: condSection,
-            label: `CB${ugCables.length + 1}-${COND_LABELS[condType]}`,
-            hasConduit: true, hasMechanicalProtection: false,
-          };
-          setUGCables(prev => [...prev, newCable]);
-        }
+        // Cable is placed by clicking directly on a trench element (see SVG trench group)
         return;
       }
       if (tool === "cover") {
-        const clickedTrench = trenches.find(t => {
-          const d = pointToSegmentDist(pos.x, pos.y, t.x1, t.y1, t.x2, t.y2);
-          return d < 20;
-        });
-        if (clickedTrench) {
-          setTrenches(prev => prev.map(t => t.id === clickedTrench.id ? { ...t, covered: true } : t));
-        }
+        // Cover is applied by clicking directly on a trench element (see SVG trench group)
         return;
       }
     }
@@ -332,15 +380,18 @@ export default function PowerNetwork() {
 
   return (
     <div style={{
-      display: "flex", height: "100vh", background: "#070d1a",
-      fontFamily: "'Courier New', Courier, monospace", overflow: "hidden",
-      color: "#e2e8f0",
+      position: "fixed", inset: 0,
+      display: "flex", background: "#070d1a",
+      fontFamily: "'Courier New', Courier, monospace",
+      color: "#e2e8f0", zIndex: 0,
     }}>
 
       {/* ── Left Sidebar ── */}
       <aside style={{
-        width: 200, background: "#050a14", borderRight: "1px solid #1e293b",
-        display: "flex", flexDirection: "column", flexShrink: 0, overflowY: "auto",
+        width: 200, minWidth: 200, maxWidth: 200,
+        background: "#050a14", borderRight: "1px solid #1e293b",
+        display: "flex", flexDirection: "column", flexShrink: 0,
+        overflowY: "auto", overflowX: "hidden",
       }}>
         {/* Header */}
         <div style={{ padding: "14px 12px 10px", borderBottom: "1px solid #1e293b" }}>
@@ -447,11 +498,13 @@ export default function PowerNetwork() {
           ))}
           <div style={{ marginTop: 8 }}>
             <div style={{ fontSize: 8, color: "#334155", marginBottom: 4 }}>Sección (mm²)</div>
-            <select value={condSection} onChange={e => setCondSection(+e.target.value)}
-              style={{ width: "100%", background: "#0f172a", border: "1px solid #1e293b", color: "#94a3b8", fontSize: 10, padding: "4px 6px", borderRadius: 4, outline: "none" }}
+            <select
+              value={String(condSection)}
+              onChange={e => setCondSection(Number(e.target.value))}
+              style={{ width: "100%", background: "#0f172a", border: "1px solid #1e293b", color: "#e2e8f0", fontSize: 10, padding: "4px 6px", borderRadius: 4, outline: "none" }}
             >
               {[16, 25, 35, 50, 70, 95, 120, 150, 185, 240].map(s => (
-                <option key={s} value={s}>{s} mm²</option>
+                <option key={s} value={String(s)}>{s} mm²</option>
               ))}
             </select>
           </div>
@@ -468,7 +521,7 @@ export default function PowerNetwork() {
       </aside>
 
       {/* ── Canvas ── */}
-      <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+      <div style={{ flex: 1, minWidth: 0, position: "relative", overflow: "hidden" }}>
 
         {/* Top toolbar */}
         <div style={{
@@ -482,7 +535,14 @@ export default function PowerNetwork() {
             {mode === "aerial" ? "🏗 RED AÉREA BT" : "⛏ RED SUBTERRÁNEA BT"}
           </div>
           <div style={{ flex: 1 }} />
-          {/* Grid toggle */}
+          {mode === "underground" && (tool === "cable" || tool === "cover") && trenches.length > 0 && (
+            <div style={{ fontSize: 9, color: tool === "cover" ? "#fbbf24" : COND_COLORS[condType], background: "rgba(255,255,255,0.04)", padding: "3px 10px", borderRadius: 4 }}>
+              {tool === "cable"
+                ? `Haz clic sobre una zanja para tender ${COND_LABELS[condType]}`
+                : "Haz clic sobre una zanja para cubrirla"}
+              {" "}— las zanjas se iluminan al pasar el cursor
+            </div>
+          )}
           <button onClick={() => setShowGrid(g => !g)}
             style={{ background: showGrid ? "rgba(74,222,128,0.1)" : "transparent", border: "1px solid #1e293b", color: showGrid ? "#4ade80" : "#475569", fontSize: 9, padding: "3px 10px", borderRadius: 4, cursor: "pointer" }}
           >
@@ -627,14 +687,51 @@ export default function PowerNetwork() {
           {/* ── UNDERGROUND MODE ── */}
           {mode === "underground" && <>
             {/* Trenches */}
-            {trenches.map(t => (
-              <g key={t.id} onClick={e => {
+            {trenches.map(t => {
+              const isTargetable = tool === "cable" || tool === "cover";
+              const isHovered = hoveredId === t.id;
+              const handleClick = (e: React.MouseEvent) => {
                 e.stopPropagation();
-                if (tool === "select") setSelectedId(t.id);
-              }}>
-                <TrenchSVG trench={t} cables={ugCables} selected={selectedId === t.id}/>
-              </g>
-            ))}
+                if (tool === "select") { setSelectedId(t.id); return; }
+                if (tool === "cable") {
+                  const newCable: UGCable = {
+                    id: uid(), trenchId: t.id,
+                    type: condType, crossSection: condSection,
+                    label: `CB${ugCables.length + 1}-${COND_LABELS[condType]}`,
+                    hasConduit: true, hasMechanicalProtection: false,
+                    loadKW: 5, pf: 0.9,
+                  };
+                  setUGCables(prev => [...prev, newCable]);
+                  return;
+                }
+                if (tool === "cover") {
+                  setTrenches(prev => prev.map(tr => tr.id === t.id ? { ...tr, covered: true } : tr));
+                  return;
+                }
+              };
+              return (
+                <g key={t.id}
+                  onClick={handleClick}
+                  onMouseEnter={() => isTargetable && setHoveredId(t.id)}
+                  onMouseLeave={() => setHoveredId(null)}
+                  style={{ cursor: isTargetable ? "pointer" : "default" }}
+                >
+                  {/* Big invisible hit zone */}
+                  <line x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2}
+                    stroke="transparent" strokeWidth={40} strokeLinecap="round"
+                  />
+                  {/* Hover/active highlight */}
+                  {isTargetable && (
+                    <line x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2}
+                      stroke={tool === "cover" ? "#fbbf24" : COND_COLORS[condType]}
+                      strokeWidth={28} strokeLinecap="round"
+                      opacity={isHovered ? 0.25 : 0.1}
+                    />
+                  )}
+                  <TrenchSVG trench={t} cables={ugCables} selected={selectedId === t.id}/>
+                </g>
+              );
+            })}
 
             {/* Pending trench preview */}
             {trenchStart && (
@@ -677,24 +774,26 @@ export default function PowerNetwork() {
 
       {/* ── Right Panel ── */}
       <aside style={{
-        width: 220, background: "#050a14", borderLeft: "1px solid #1e293b",
-        display: "flex", flexDirection: "column", flexShrink: 0, overflowY: "auto",
+        width: 260, minWidth: 260, maxWidth: 260,
+        background: "#050a14", borderLeft: "1px solid #1e293b",
+        display: "flex", flexDirection: "column", flexShrink: 0,
+        overflowY: "auto", overflowX: "hidden",
       }}>
 
         {/* Panel tabs */}
         <div style={{ display: "flex", borderBottom: "1px solid #1e293b" }}>
-          {(["properties", "analysis"] as const).map(tab => (
+          {(["properties", "analysis", "calc"] as const).map(tab => (
             <button key={tab}
               onClick={() => setActivePanel(tab)}
               style={{
-                flex: 1, padding: "9px 4px", fontSize: 8, border: "none", cursor: "pointer",
-                textTransform: "uppercase", letterSpacing: "0.1em",
+                flex: 1, padding: "9px 2px", fontSize: 7.5, border: "none", cursor: "pointer",
+                textTransform: "uppercase", letterSpacing: "0.08em",
                 background: activePanel === tab ? "rgba(74,222,128,0.08)" : "transparent",
                 color: activePanel === tab ? "#4ade80" : "#334155",
                 borderBottom: activePanel === tab ? "2px solid #4ade80" : "2px solid transparent",
               }}
             >
-              {tab === "properties" ? "Propiedades" : "Análisis"}
+              {tab === "properties" ? "Propiedades" : tab === "analysis" ? "Análisis" : "⚡ Cálculo"}
             </button>
           ))}
         </div>
@@ -806,6 +905,28 @@ export default function PowerNetwork() {
                     <option value="MV">MT — Media Tensión</option>
                   </select>
                 </div>
+                {/* Electrical load inputs */}
+                <div style={{ marginTop: 10, padding: "8px", background: "rgba(251,191,36,0.05)", border: "1px solid #78350f", borderRadius: 6 }}>
+                  <div style={{ fontSize: 8, color: "#92400e", marginBottom: 6, letterSpacing: "0.1em" }}>CARGA ELÉCTRICA</div>
+                  <div style={{ marginBottom: 6 }}>
+                    <div style={{ fontSize: 8, color: "#475569", marginBottom: 3 }}>Potencia activa (kW)</div>
+                    <input type="number" min={0.1} step={0.5} value={selectedConductor.loadKW ?? 5}
+                      onChange={e => setConductors(prev => prev.map(c =>
+                        c.id === selectedConductor.id ? { ...c, loadKW: +e.target.value } : c
+                      ))}
+                      style={{ width: "100%", background: "#0f172a", border: "1px solid #1e293b", borderRadius: 4, color: "#fbbf24", fontSize: 11, padding: "4px 7px", outline: "none", boxSizing: "border-box" as const }}
+                    />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 8, color: "#475569", marginBottom: 3 }}>Factor de potencia (0–1)</div>
+                    <input type="number" min={0.1} max={1} step={0.01} value={selectedConductor.pf ?? 0.9}
+                      onChange={e => setConductors(prev => prev.map(c =>
+                        c.id === selectedConductor.id ? { ...c, pf: +e.target.value } : c
+                      ))}
+                      style={{ width: "100%", background: "#0f172a", border: "1px solid #1e293b", borderRadius: 4, color: "#fbbf24", fontSize: 11, padding: "4px 7px", outline: "none", boxSizing: "border-box" as const }}
+                    />
+                  </div>
+                </div>
                 <button onClick={deleteSelected}
                   style={{ width: "100%", background: "transparent", border: "1px solid #ef4444", color: "#ef4444", fontSize: 10, padding: "5px", borderRadius: 4, cursor: "pointer", marginTop: 4 }}
                 >
@@ -878,6 +999,28 @@ export default function PowerNetwork() {
                     <span style={{ fontSize: 10, color: "#64748b" }}>{f.label}</span>
                   </label>
                 ))}
+                {/* Electrical load inputs */}
+                <div style={{ marginTop: 6, padding: "8px", background: "rgba(251,191,36,0.05)", border: "1px solid #78350f", borderRadius: 6 }}>
+                  <div style={{ fontSize: 8, color: "#92400e", marginBottom: 6, letterSpacing: "0.1em" }}>CARGA ELÉCTRICA</div>
+                  <div style={{ marginBottom: 6 }}>
+                    <div style={{ fontSize: 8, color: "#475569", marginBottom: 3 }}>Potencia activa (kW)</div>
+                    <input type="number" min={0.1} step={0.5} value={selectedCable.loadKW ?? 5}
+                      onChange={e => setUGCables(prev => prev.map(c =>
+                        c.id === selectedCable.id ? { ...c, loadKW: +e.target.value } : c
+                      ))}
+                      style={{ width: "100%", background: "#0f172a", border: "1px solid #1e293b", borderRadius: 4, color: "#fbbf24", fontSize: 11, padding: "4px 7px", outline: "none", boxSizing: "border-box" as const }}
+                    />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 8, color: "#475569", marginBottom: 3 }}>Factor de potencia (0–1)</div>
+                    <input type="number" min={0.1} max={1} step={0.01} value={selectedCable.pf ?? 0.9}
+                      onChange={e => setUGCables(prev => prev.map(c =>
+                        c.id === selectedCable.id ? { ...c, pf: +e.target.value } : c
+                      ))}
+                      style={{ width: "100%", background: "#0f172a", border: "1px solid #1e293b", borderRadius: 4, color: "#fbbf24", fontSize: 11, padding: "4px 7px", outline: "none", boxSizing: "border-box" as const }}
+                    />
+                  </div>
+                </div>
                 <button onClick={deleteSelected}
                   style={{ width: "100%", background: "transparent", border: "1px solid #ef4444", color: "#ef4444", fontSize: 10, padding: "5px", borderRadius: 4, cursor: "pointer", marginTop: 8 }}
                 >
@@ -969,9 +1112,187 @@ export default function PowerNetwork() {
             </div>
           </div>
         )}
+
+        {/* ── CALCULATION PANEL ── */}
+        {activePanel === "calc" && (
+          <div style={{ padding: "12px", flex: 1, overflowY: "auto", overflowX: "hidden" }}>
+            <div style={{ fontSize: 9, color: "#4ade80", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 4 }}>
+              ⚡ Cálculo Eléctrico
+            </div>
+            <div style={{ fontSize: 8, color: "#1e3a5f", marginBottom: 12, lineHeight: 1.6 }}>
+              1 cuadrícula = {METRES_PER_GRID}m reales · Al aluminio · Cu cobre
+            </div>
+
+            {/* Aerial conductors */}
+            {conductors.filter(c => c.type === "phase_a" || c.type === "phase_b" || c.type === "phase_c").length > 0 && (
+              <>
+                <div style={{ fontSize: 8, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6 }}>
+                  Conductores Aéreos
+                </div>
+                {conductors
+                  .filter(c => c.type === "phase_a" || c.type === "phase_b" || c.type === "phase_c")
+                  .map(c => {
+                    const from = poles.find(p => p.id === c.fromPoleId);
+                    const to = poles.find(p => p.id === c.toPoleId);
+                    if (!from || !to) return null;
+                    const calc = calcConductor(c, from.x, from.y, to.x, to.y);
+                    const dropOk = calc.voltageDropPct <= 5;
+                    const loadOk = !calc.overloaded;
+                    return (
+                      <div key={c.id} style={{
+                        marginBottom: 10, padding: "8px", borderRadius: 6,
+                        background: "rgba(255,255,255,0.02)",
+                        border: `1px solid ${calc.overloaded || !dropOk ? "#7f1d1d" : "#1e293b"}`,
+                      }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                          <span style={{ fontSize: 9, color: COND_COLORS[c.type], fontWeight: "bold" }}>{c.label}</span>
+                          <span style={{ fontSize: 8, color: "#334155" }}>{c.crossSection}mm² Al</span>
+                        </div>
+                        {[
+                          { label: "Longitud", value: `${calc.lengthM.toFixed(1)} m`, color: "#94a3b8" },
+                          { label: "Resistencia", value: `${calc.resistanceOhm.toFixed(4)} Ω`, color: "#94a3b8" },
+                          { label: "Corriente", value: `${calc.currentA.toFixed(2)} A`, color: loadOk ? "#60a5fa" : "#ef4444" },
+                          { label: "Capacidad máx.", value: `${calc.ampacity} A`, color: "#475569" },
+                          { label: "Caída de tensión", value: `${calc.voltageDropV.toFixed(2)} V (${calc.voltageDropPct.toFixed(2)}%)`, color: dropOk ? "#4ade80" : "#ef4444" },
+                          { label: "Tensión en destino", value: `${calc.voltageEndV.toFixed(1)} V`, color: dropOk ? "#fbbf24" : "#ef4444" },
+                          { label: "Pérdidas (I²R)", value: `${calc.powerLossW.toFixed(2)} W`, color: "#f472b6" },
+                        ].map(row => (
+                          <div key={row.label} style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", borderBottom: "1px solid #0f172a" }}>
+                            <span style={{ fontSize: 8, color: "#334155" }}>{row.label}</span>
+                            <span style={{ fontSize: 9, color: row.color, fontFamily: "monospace" }}>{row.value}</span>
+                          </div>
+                        ))}
+                        {/* Status badges */}
+                        <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
+                          <span style={{ fontSize: 7, padding: "2px 6px", borderRadius: 3, background: loadOk ? "rgba(74,222,128,0.1)" : "rgba(239,68,68,0.15)", color: loadOk ? "#4ade80" : "#ef4444" }}>
+                            {loadOk ? "✓ Carga OK" : "✗ SOBRECARGA"}
+                          </span>
+                          <span style={{ fontSize: 7, padding: "2px 6px", borderRadius: 3, background: dropOk ? "rgba(74,222,128,0.1)" : "rgba(239,68,68,0.15)", color: dropOk ? "#4ade80" : "#ef4444" }}>
+                            {dropOk ? "✓ Caída OK" : "✗ CAÍDA >5%"}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </>
+            )}
+
+            {/* Underground cables */}
+            {ugCables.filter(c => c.type === "phase_a" || c.type === "phase_b" || c.type === "phase_c").length > 0 && (
+              <>
+                <div style={{ fontSize: 8, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 6, marginTop: 10 }}>
+                  Cables Subterráneos
+                </div>
+                {ugCables
+                  .filter(c => c.type === "phase_a" || c.type === "phase_b" || c.type === "phase_c")
+                  .map(c => {
+                    const trench = trenches.find(t => t.id === c.trenchId);
+                    if (!trench) return null;
+                    const lenM = (dist(trench.x1, trench.y1, trench.x2, trench.y2) / GRID) * METRES_PER_GRID;
+                    const calc = calcUGCable(c, lenM);
+                    const dropOk = calc.voltageDropPct <= 5;
+                    const loadOk = !calc.overloaded;
+                    return (
+                      <div key={c.id} style={{
+                        marginBottom: 10, padding: "8px", borderRadius: 6,
+                        background: "rgba(255,255,255,0.02)",
+                        border: `1px solid ${calc.overloaded || !dropOk ? "#7f1d1d" : "#1e293b"}`,
+                      }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                          <span style={{ fontSize: 9, color: COND_COLORS[c.type], fontWeight: "bold" }}>{c.label}</span>
+                          <span style={{ fontSize: 8, color: "#334155" }}>{c.crossSection}mm² Cu</span>
+                        </div>
+                        {[
+                          { label: "Longitud", value: `${calc.lengthM.toFixed(1)} m`, color: "#94a3b8" },
+                          { label: "Resistencia", value: `${calc.resistanceOhm.toFixed(4)} Ω`, color: "#94a3b8" },
+                          { label: "Corriente", value: `${calc.currentA.toFixed(2)} A`, color: loadOk ? "#60a5fa" : "#ef4444" },
+                          { label: "Capacidad máx.", value: `${calc.ampacity} A`, color: "#475569" },
+                          { label: "Caída de tensión", value: `${calc.voltageDropV.toFixed(2)} V (${calc.voltageDropPct.toFixed(2)}%)`, color: dropOk ? "#4ade80" : "#ef4444" },
+                          { label: "Tensión en destino", value: `${calc.voltageEndV.toFixed(1)} V`, color: dropOk ? "#fbbf24" : "#ef4444" },
+                          { label: "Pérdidas (I²R)", value: `${calc.powerLossW.toFixed(2)} W`, color: "#f472b6" },
+                        ].map(row => (
+                          <div key={row.label} style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", borderBottom: "1px solid #0f172a" }}>
+                            <span style={{ fontSize: 8, color: "#334155" }}>{row.label}</span>
+                            <span style={{ fontSize: 9, color: row.color, fontFamily: "monospace" }}>{row.value}</span>
+                          </div>
+                        ))}
+                        <div style={{ display: "flex", gap: 4, marginTop: 6 }}>
+                          <span style={{ fontSize: 7, padding: "2px 6px", borderRadius: 3, background: loadOk ? "rgba(74,222,128,0.1)" : "rgba(239,68,68,0.15)", color: loadOk ? "#4ade80" : "#ef4444" }}>
+                            {loadOk ? "✓ Carga OK" : "✗ SOBRECARGA"}
+                          </span>
+                          <span style={{ fontSize: 7, padding: "2px 6px", borderRadius: 3, background: dropOk ? "rgba(74,222,128,0.1)" : "rgba(239,68,68,0.15)", color: dropOk ? "#4ade80" : "#ef4444" }}>
+                            {dropOk ? "✓ Caída OK" : "✗ CAÍDA >5%"}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </>
+            )}
+
+            {/* Summary totals */}
+            {(conductors.length > 0 || ugCables.length > 0) && (() => {
+              const aerialCalcs = conductors
+                .filter(c => c.type === "phase_a" || c.type === "phase_b" || c.type === "phase_c")
+                .map(c => {
+                  const from = poles.find(p => p.id === c.fromPoleId);
+                  const to = poles.find(p => p.id === c.toPoleId);
+                  if (!from || !to) return null;
+                  return calcConductor(c, from.x, from.y, to.x, to.y);
+                }).filter(Boolean) as ElecCalc[];
+              const ugCalcs = ugCables
+                .filter(c => c.type === "phase_a" || c.type === "phase_b" || c.type === "phase_c")
+                .map(c => {
+                  const trench = trenches.find(t => t.id === c.trenchId);
+                  if (!trench) return null;
+                  const lenM = (dist(trench.x1, trench.y1, trench.x2, trench.y2) / GRID) * METRES_PER_GRID;
+                  return calcUGCable(c, lenM);
+                }).filter(Boolean) as ElecCalc[];
+              const allCalcs = [...aerialCalcs, ...ugCalcs];
+              if (allCalcs.length === 0) return null;
+              const totalLoss = allCalcs.reduce((s, c) => s + c.powerLossW, 0);
+              const maxDrop = Math.max(...allCalcs.map(c => c.voltageDropPct));
+              const overloaded = allCalcs.filter(c => c.overloaded).length;
+              return (
+                <div style={{ marginTop: 12, padding: "10px", background: "rgba(74,222,128,0.04)", border: "1px solid #14532d", borderRadius: 6 }}>
+                  <div style={{ fontSize: 8, color: "#14532d", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: 8 }}>Resumen Red</div>
+                  {[
+                    { label: "Pérdidas totales", value: `${totalLoss.toFixed(1)} W`, color: "#f472b6" },
+                    { label: "Máx. caída tensión", value: `${maxDrop.toFixed(2)} %`, color: maxDrop > 5 ? "#ef4444" : "#4ade80" },
+                    { label: "Tramos sobrecargados", value: `${overloaded}`, color: overloaded > 0 ? "#ef4444" : "#4ade80" },
+                  ].map(row => (
+                    <div key={row.label} style={{ display: "flex", justifyContent: "space-between", padding: "3px 0" }}>
+                      <span style={{ fontSize: 8, color: "#334155" }}>{row.label}</span>
+                      <span style={{ fontSize: 10, fontWeight: "bold", color: row.color, fontFamily: "monospace" }}>{row.value}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+
+            {conductors.length === 0 && ugCables.length === 0 && (
+              <p style={{ fontSize: 10, color: "#1e3a5f", lineHeight: 1.7 }}>
+                Agrega conductores o cables y configura su carga (kW) en Propiedades para ver los cálculos aquí.
+              </p>
+            )}
+
+            {/* Formula reference */}
+            <div style={{ marginTop: 14, padding: "8px", background: "rgba(255,255,255,0.02)", borderRadius: 4, fontSize: 8, color: "#1e3a5f", lineHeight: 1.9 }}>
+              <strong style={{ color: "#334155", display: "block", marginBottom: 4 }}>Fórmulas aplicadas</strong>
+              <span style={{ color: "#334155" }}>I</span> = P / (V · fp)<br/>
+              <span style={{ color: "#334155" }}>R</span> = ρ · L / S<br/>
+              <span style={{ color: "#334155" }}>ΔV</span> = 2 · I · R<br/>
+              <span style={{ color: "#334155" }}>%ΔV</span> = ΔV / Vn · 100<br/>
+              <span style={{ color: "#334155" }}>Pjoul</span> = I² · R<br/>
+              <span style={{ color: "#334155" }}>Límite</span>: ΔV ≤ 5% (IEC)
+            </div>
+          </div>
+        )}
+
       </aside>
 
       <style>{`
+        html, body { margin: 0; padding: 0; overflow: hidden; }
         * { box-sizing: border-box; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-track { background: #050a14; }
