@@ -1,127 +1,87 @@
-# ⚡ Electric Simulator
+# Electric Simulator ⚡
 
-> Simulador interactivo de circuitos eléctricos desarrollado con Next.js, React y TypeScript.
+An education-focused platform that combines classroom workflows (classes, assignments, comments, submissions) with a suite of interactive electrical simulators.
 
-Electric Simulator es una aplicación web moderna diseñada para visualizar, crear y experimentar con circuitos eléctricos de forma intuitiva. El objetivo es ofrecer una herramienta educativa e interactiva para comprender mejor los principios básicos de la electricidad.
+**Description**  
+Electric Simulator provides a modern, web-based learning environment where instructors can create classes and assignments, and students can complete simulation-based tasks. It includes multiple simulator modules (circuit, house, machine, sensor, industrial office) and supports real-time collaboration features powered by Supabase.
 
----
+**Main Features**
+- Classroom management: create or join classes, roles, and assignment deadlines. 🎓
+- Assignments: publish tasks, discuss via comments, and submit simulator snapshots. 📝
+- Real-time updates: live assignment and comment updates via Supabase Realtime. 🔄
+- Circuit Simulator: drag-and-drop components, wire them, and see basic analysis. ⚡
+- House Simulator: residential power layout and validation logic. 🏠
+- Machine Simulator: industrial machine configuration with validation. 🏭
+- Sensor Simulation: automation nodes, wiring, and control loop. 📡
+- Industrial Offices: office/industrial load simulation. 🏢
+- Submission capture: assignment submissions include a simulator screenshot using html2canvas.
 
-## 🚀 Características
+**Tech Stack** 🧰
+- Next.js (App Router)
+- React
+- TypeScript
+- Supabase (Auth + Realtime)
+- Tailwind CSS
+- Zustand
+- Vitest
+- html2canvas
 
-- ⚡ Simulación visual de componentes eléctricos
-- 🧩 Sistema de nodos interactivos
-- 🎯 Diseño basado en cuadrícula (snap to grid)
-- 🧠 Arquitectura escalable y modular
-- 💾 Manejo de estado global con Zustand
-- 🎨 Interfaz moderna con Tailwind CSS
-- 🔒 Tipado estricto con TypeScript
-
----
-
-## 🛠️ Tecnologías Utilizadas
-
-- **Next.js** – Framework React para aplicaciones modernas
-- **React** – Biblioteca para interfaces dinámicas
-- **TypeScript** – Tipado estático
-- **Zustand** – Manejo de estado global
-- **Tailwind CSS** – Estilos rápidos y responsivos
-- **UUID** – Generación de identificadores únicos
-
----
-
-## 📦 Instalación
-
-Clona el repositorio:
-
-```bash
-git clone https://github.com/NotGaabo/Electric-Simulator.git
-cd Electric-Simulator
-```
-
-Instala las dependencias:
-
+**Installation & Configuration**
+1. Install dependencies:
 ```bash
 npm install
 ```
 
-Inicia el servidor de desarrollo:
+2. Create `.env.local` in the project root:
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
 
+3. Supabase setup (high‑level):
+- Create a Supabase project.
+- Copy the project URL and anon key into `.env.local`.
+- Enable Auth providers as needed.
+- Configure database tables and policies for classes, assignments, comments, and submissions (see `src/app/api` routes for expected data).
+
+**Usage**
+Run the development server:
 ```bash
 npm run dev
 ```
 
-Abre en tu navegador:
-
+Open the app in your browser:
 ```
 http://localhost:3000
 ```
 
----
+Typical flow:
+- Register or log in.
+- Open the dashboard and create/join a class.
+- Create assignments and open simulator modules to complete tasks.
+- Submit assignment snapshots directly from the simulator view.
 
-## 📁 Estructura del Proyecto
-
-```
-Electric-Simulator/
-│
-├── public/                  # Recursos estáticos
-├── src/
-│   ├── app/                 # Rutas y layout principal (Next.js App Router)
-│   ├── components/
-│   │   └── electrical/      # Componentes del simulador eléctrico
-│   ├── store/               # Estado global (Zustand)
-│   ├── types/               # Tipos TypeScript
-│   └── styles/              # Estilos globales
-│
-├── package.json
-├── tailwind.config.js
-└── tsconfig.json
+**Scripts**
+```bash
+npm run dev
+npm run build
+npm run start
+npm run lint
+npm run test
+npm run test:watch
 ```
 
----
+**Folder Structure**
+```
+public/
+src/
+  app/           # Next.js routes (App Router), pages, and API routes
+  components/    # UI + simulator components
+  hooks/         # Client hooks for dashboards, assignments, comments, simulators
+  lib/           # Simulator modules, utils, Supabase clients
+  store/         # Zustand stores
+  types/         # Shared TypeScript types
+```
 
-## 🧠 Cómo Funciona
-
-El simulador utiliza:
-
-- Un sistema de nodos eléctricos renderizados dinámicamente.
-- Un grid con alineación automática para organizar los componentes.
-- Un estado global centralizado para manejar proyectos y elementos del circuito.
-- Componentes reutilizables para representar símbolos eléctricos.
-
----
-
-## 📜 Scripts Disponibles
-
-| Comando | Descripción |
-|----------|------------|
-| `npm run dev` | Ejecuta en modo desarrollo |
-| `npm run build` | Construye la app para producción |
-| `npm run start` | Ejecuta versión producción |
-| `npm run lint` | Revisión de código |
-
----
-
-## 🎯 Objetivo del Proyecto
-
-Este proyecto busca:
-
-- Facilitar el aprendizaje de electricidad
-- Permitir experimentar visualmente con circuitos
-- Servir como base para futuras simulaciones más avanzadas
-
----
-
-## 🚀 Mejoras Futuras
-
-- 🔌 Simulación real de corriente y voltaje  
-- 📊 Gráficas dinámicas  
-- 🧮 Implementación de Ley de Ohm  
-- 💾 Guardado de proyectos  
-- 🌙 Modo oscuro completo  
-
----
-
-## 🤝 Contribuciones
-
-Las contribuciones son bienvenidas.  
-Puedes abrir un issue o enviar un Pull Request.
+**Contributing**
+Contributions are welcome. Please open an issue to discuss changes or submit a pull request with a clear description and screenshots when relevant.
