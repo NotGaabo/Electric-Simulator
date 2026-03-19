@@ -34,19 +34,28 @@ export function useDashboard() {
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   const cardPalettes = [
-    { from: '#312e81', to: '#4338ca', accent: '#6366f1' },    // Índigo profundo
-    { from: '#164e63', to: '#0e7490', accent: '#06b6d4' },    // Cian oscuro
-    { from: '#065f46', to: '#047857', accent: '#10b981' },    // Esmeralda
-    { from: '#1e1b4b', to: '#3730a3', accent: '#818cf8' },    // Violeta
-    { from: '#0c4a6e', to: '#0369a1', accent: '#38bdf8' },    // Azul cielo
-    { from: '#134e4a', to: '#0f766e', accent: '#2dd4bf' },    // Teal
-    { from: '#1e3a5f', to: '#1d4ed8', accent: '#60a5fa' },    // Azul real
-    { from: '#3b0764', to: '#6d28d9', accent: '#a78bfa' },    // Púrpura
+    { from: '#15803d', to: '#14532d', accent: '#4ade80' },  // 0 - verde bosque
+    { from: '#059669', to: '#065f46', accent: '#34d399' },  // 1 - esmeralda
+    { from: '#0d9488', to: '#134e4a', accent: '#2dd4bf' },  // 2 - teal
+    { from: '#22c55e', to: '#15803d', accent: '#86efac' },  // 3 - verde lima
+    { from: '#16a34a', to: '#0d6b31', accent: '#bbf7d0' },  // 4 - verde base
+    { from: '#0f766e', to: '#0c4a44', accent: '#5eead4' },  // 5 - teal oscuro
+    { from: '#4ade80', to: '#16a34a', accent: '#dcfce7' },  // 6 - verde claro
+    { from: '#047857', to: '#064e3b', accent: '#6ee7b7' },  // 7 - esmeralda oscuro
+    { from: '#166534', to: '#052e16', accent: '#4ade80' },  // 8 - verde profundo
+    { from: '#0e7490', to: '#164e63', accent: '#67e8f9' },  // 9 - cyan-verde
+    { from: '#10b981', to: '#047857', accent: '#a7f3d0' },  // 10 - menta
+    { from: '#1a6b3c', to: '#0d4a28', accent: '#6ee7b7' },  // 11 - verde medio
   ]
 
   const getPaletteForClass = (classId: string) => {
-    const index = parseInt(classId.replace(/\D/g, ''), 10) || 0
-    return cardPalettes[index % cardPalettes.length]
+    // Hash de Fowler–Noll–Vo simplificado — muy buena dispersión con UUIDs
+    let hash = 2166136261
+    for (let i = 0; i < classId.length; i++) {
+      hash ^= classId.charCodeAt(i)
+      hash = (hash * 16777619) >>> 0  // >>> 0 mantiene uint32
+    }
+    return cardPalettes[hash % cardPalettes.length]
   }
 
   const getTeacherInitials = (classItem: Class) => {

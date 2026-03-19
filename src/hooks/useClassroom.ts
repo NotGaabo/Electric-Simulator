@@ -62,21 +62,28 @@ export function useClassroom() {
   }
 
   const colors = [
-    'from-slate-600 to-slate-700',
-    'from-blue-600 to-blue-700',
-    'from-sky-500 to-sky-600',
-    'from-emerald-600 to-emerald-700',
-    'from-orange-600 to-orange-700',
-    'from-rose-600 to-rose-700',
-    'from-purple-600 to-purple-700',
-    'from-indigo-600 to-indigo-700',
-    'from-pink-600 to-pink-700',
-    'from-teal-600 to-teal-700'
+    'from-green-700 to-green-900',        // verde bosque
+    'from-emerald-600 to-emerald-900',    // esmeralda
+    'from-teal-600 to-teal-900',          // teal
+    'from-green-500 to-green-700',        // verde lima
+    'from-green-600 to-green-800',        // verde base
+    'from-teal-700 to-teal-900',          // teal oscuro
+    'from-emerald-500 to-emerald-700',    // esmeralda claro
+    'from-emerald-700 to-emerald-900',    // esmeralda oscuro
+    'from-green-800 to-green-950',        // verde profundo
+    'from-cyan-600 to-teal-800',          // cyan-verde
+    'from-emerald-500 to-teal-700',       // menta-teal
+    'from-green-600 to-teal-800',         // verde-teal
   ]
 
-  const getColorForClass = (classId: string) => {
-    const index = parseInt(classId.replace(/\D/g, ''), 10) || 0
-    return colors[index % colors.length]
+  const getColorForClass = (classId: string): string => {
+    // Hash FNV-1a — buena dispersión con UUIDs
+    let hash = 2166136261
+    for (let i = 0; i < classId.length; i++) {
+      hash ^= classId.charCodeAt(i)
+      hash = (hash * 16777619) >>> 0
+    }
+    return colors[hash % colors.length]
   }
 
   const getTeacherInitials = (classItem: ClassItem) => {

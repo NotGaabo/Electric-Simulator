@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import Link from 'next/link';
 
 type Step = 'initial' | 'details';
 
@@ -20,14 +21,13 @@ export default function SignUpPage() {
 
   const testimonials = [
     {
-      quote: "Untitled has saved us thousands of hours of work. We're able to spin up projects faster and take on more clients.",
+      quote: "Electricity.sim has saved us thousands of hours. We spin up circuit prototypes faster and ship better products.",
       author: "Henley Shepherd",
       role: "Product Manager, Hourglass",
       company: "Web Design Agency",
     }
   ];
 
-  // Step 1 → Step 2: just validate email format and advance
   const handleEmailNext = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -38,39 +38,22 @@ export default function SignUpPage() {
     setStep('details');
   };
 
-  // Step 2: final signup
   const handleFinalSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
-    if (!fullName.trim()) {
-      setError('Please enter your full name.');
-      return;
-    }
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters.');
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError('Passwords do not match.');
-      return;
-    }
-
+    if (!fullName.trim()) { setError('Please enter your full name.'); return; }
+    if (password.length < 8) { setError('Password must be at least 8 characters.'); return; }
+    if (password !== confirmPassword) { setError('Passwords do not match.'); return; }
     setIsLoading(true);
     try {
       const { data, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${location.origin}/dashboard`,
-          data: { full_name: fullName },
-        },
+        email, password,
+        options: { emailRedirectTo: `${location.origin}/dashboard`, data: { full_name: fullName } },
       });
       if (signUpError) throw signUpError;
       if (data.user) {
         if (data.user.identities && data.user.identities.length === 0) {
-          setError('This email is already registered. Please log in instead.');
-          return;
+          setError('This email is already registered. Please log in instead.'); return;
         }
         router.push('/dashboard');
       }
@@ -82,252 +65,430 @@ export default function SignUpPage() {
   };
 
   const handleGoogleSignup = async () => {
-    setIsLoading(true);
-    setError('');
+    setIsLoading(true); setError('');
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo: `${location.origin}/dashboard` },
-      });
+      const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${location.origin}/dashboard` } });
       if (error) throw error;
-    } catch (err: any) {
-      setError(err.message);
-      setIsLoading(false);
-    }
+    } catch (err: any) { setError(err.message); setIsLoading(false); }
   };
 
   const handleFacebookSignup = async () => {
-    setIsLoading(true);
-    setError('');
+    setIsLoading(true); setError('');
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'facebook',
-        options: { redirectTo: `${location.origin}/dashboard` },
-      });
+      const { error } = await supabase.auth.signInWithOAuth({ provider: 'facebook', options: { redirectTo: `${location.origin}/dashboard` } });
       if (error) throw error;
-    } catch (err: any) {
-      setError(err.message);
-      setIsLoading(false);
-    }
+    } catch (err: any) { setError(err.message); setIsLoading(false); }
   };
 
   const handleAppleSignup = async () => {
-    setIsLoading(true);
-    setError('');
+    setIsLoading(true); setError('');
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'apple',
-        options: { redirectTo: `${location.origin}/dashboard` },
-      });
+      const { error } = await supabase.auth.signInWithOAuth({ provider: 'apple', options: { redirectTo: `${location.origin}/dashboard` } });
       if (error) throw error;
-    } catch (err: any) {
-      setError(err.message);
-      setIsLoading(false);
-    }
+    } catch (err: any) { setError(err.message); setIsLoading(false); }
   };
 
   return (
     <>
       <style>{`
-        html, body { margin: 0 !important; padding: 0 !important; }
-        .signup-right { display: none; }
-        @media (min-width: 1024px) { .signup-right { display: flex; } }
-        .step-fade { animation: fadeIn 0.25s ease; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-        input:focus { border-color: #6366f1 !important; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
-        .social-btn:hover { background-color: #f9fafb !important; }
-        .primary-btn:hover:not(:disabled) { background-color: #b91c1c !important; }
-        .back-btn:hover { color: #111827 !important; }
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=Space+Mono:wght@400;700&display=swap');
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+          --white: #ffffff;
+          --off-white: #f2fbf5;
+          --g50:  #f0fdf4;
+          --g100: #dcfce7;
+          --g200: #bbf7d0;
+          --g300: #86efac;
+          --g400: #4ade80;
+          --g500: #22c55e;
+          --g600: #16a34a;
+          --g700: #15803d;
+          --gray-300: #cbd5e1;
+          --gray-400: #94a3b8;
+          --gray-500: #64748b;
+          --gray-700: #334155;
+          --gray-900: #0f172a;
+        }
+        .signup-root {
+          font-family: 'DM Sans', sans-serif;
+          position: fixed;
+          inset: 0;
+          display: flex;
+          width: 100vw;
+          min-height: 100vh;
+          background: var(--white);
+          color: var(--gray-900);
+          overflow: hidden;
+        }
+
+        /* Grid & Orbs */
+        .grid-bg {
+          position: absolute; inset: 0;
+          background-image:
+            linear-gradient(rgba(34,197,94,0.07) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(34,197,94,0.07) 1px, transparent 1px);
+          background-size: 48px 48px;
+          pointer-events: none; z-index: 0;
+        }
+        .orb {
+          position: absolute; border-radius: 50%;
+          filter: blur(80px); pointer-events: none; z-index: 0;
+          animation: float 8s ease-in-out infinite;
+        }
+        .orb-1 {
+          width: 380px; height: 380px;
+          background: radial-gradient(circle, rgba(74,222,128,0.18) 0%, transparent 70%);
+          top: -80px; left: -80px;
+        }
+        .orb-2 {
+          width: 280px; height: 280px;
+          background: radial-gradient(circle, rgba(34,197,94,0.12) 0%, transparent 70%);
+          bottom: 60px; left: 25%; animation-delay: -4s;
+        }
+        @keyframes float {
+          0%,100% { transform: translateY(0px) scale(1); }
+          50%      { transform: translateY(-24px) scale(1.04); }
+        }
+        @keyframes fadeUp {
+          from { opacity:0; transform:translateY(16px); }
+          to   { opacity:1; transform:translateY(0); }
+        }
+        .step-fade { animation: fadeUp 0.25s ease both; }
+
+        /* Left panel */
+        .left-panel {
+          position: relative; flex: 1; z-index: 1;
+          display: flex; align-items: center; justify-content: center;
+          padding: 48px 40px;
+          background: rgba(255,255,255,0.90);
+          backdrop-filter: blur(12px);
+          overflow-y: auto;
+        }
+        .form-wrap { width: 100%; max-width: 360px; animation: fadeUp 0.5s ease both; }
+
+        /* Logo */
+        .logo {
+          display: flex; align-items: center; justify-content: center;
+          gap: 10px; margin-bottom: 36px; text-decoration: none;
+        }
+        .logo-icon {
+          width: 40px; height: 40px;
+          background: linear-gradient(135deg, var(--g500), var(--g700));
+          border-radius: 12px;
+          display: flex; align-items: center; justify-content: center;
+          box-shadow: 0 4px 16px rgba(34,197,94,0.35);
+        }
+        .logo-text {
+          font-family: 'Space Mono', monospace; font-size: 15px;
+          font-weight: 700; color: var(--gray-900); letter-spacing: -0.3px;
+        }
+        .logo-text span { color: var(--g500); }
+
+        /* Headings */
+        .form-title {
+          font-size: 26px; font-weight: 300; letter-spacing: -1px;
+          color: var(--gray-900); text-align: center; margin-bottom: 6px;
+        }
+        .form-title strong { font-weight: 500; color: var(--g600); }
+        .form-sub {
+          font-size: 14px; font-weight: 300; color: var(--gray-400);
+          text-align: center; margin-bottom: 28px;
+        }
+        .form-sub strong { color: var(--gray-700); font-weight: 500; }
+
+        /* Error */
+        .error-box {
+          margin-bottom: 16px; padding: 12px 14px;
+          background: rgba(240,253,244,0.8); border: 1px solid var(--g200);
+          border-radius: 10px;
+        }
+        .error-box p { font-size: 13px; color: var(--g700); margin: 0; font-family: 'Space Mono', monospace; }
+
+        /* Fields */
+        .field { margin-bottom: 16px; }
+        .field label {
+          display: block; font-size: 12px; font-weight: 400;
+          color: var(--gray-500); margin-bottom: 6px;
+          font-family: 'Space Mono', monospace; letter-spacing: 0.3px;
+        }
+        .field input {
+          width: 100%; border: 1.5px solid var(--g200); border-radius: 10px;
+          padding: 11px 14px; font-size: 14px; font-family: 'DM Sans', sans-serif;
+          color: var(--gray-900); background: var(--off-white); outline: none;
+          transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+        }
+        .field input::placeholder { color: var(--gray-400); }
+        .field input:focus {
+          border-color: var(--g500); background: var(--white);
+          box-shadow: 0 0 0 3px rgba(34,197,94,0.12);
+        }
+        .field input:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* Buttons */
+        .btn-primary {
+          width: 100%; padding: 13px;
+          background: linear-gradient(135deg, var(--g500), var(--g700));
+          color: white; border: none; border-radius: 100px;
+          font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 500;
+          cursor: pointer; transition: all 0.25s ease;
+          box-shadow: 0 6px 20px rgba(22,163,74,0.35);
+          margin-top: 4px;
+        }
+        .btn-primary:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 10px 28px rgba(22,163,74,0.45);
+        }
+        .btn-primary:disabled { opacity: 0.65; cursor: not-allowed; }
+
+        .btn-social {
+          width: 100%; display: flex; align-items: center; justify-content: center;
+          gap: 10px; padding: 11px 14px;
+          background: var(--white); border: 1.5px solid var(--g200);
+          border-radius: 100px; font-family: 'DM Sans', sans-serif;
+          font-size: 14px; font-weight: 500; color: var(--gray-700);
+          cursor: pointer; transition: all 0.2s ease;
+        }
+        .btn-social:hover:not(:disabled) {
+          background: var(--g50); border-color: var(--g400);
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(34,197,94,0.15);
+        }
+        .btn-social:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        /* Divider */
+        .divider { display: flex; align-items: center; gap: 12px; margin: 16px 0; }
+        .divider-line { flex: 1; height: 1px; background: var(--g100); }
+        .divider-text {
+          font-size: 11px; color: var(--gray-400);
+          font-family: 'Space Mono', monospace; letter-spacing: 1px;
+        }
+
+        /* Back btn */
+        .btn-back {
+          display: flex; align-items: center; gap: 6px;
+          background: none; border: none; cursor: pointer;
+          color: var(--gray-400); font-size: 13px; padding: 0;
+          font-family: 'Space Mono', monospace;
+          margin-bottom: 20px; transition: color 0.2s;
+        }
+        .btn-back:hover { color: var(--g600); }
+
+        /* Note */
+        .form-note {
+          margin-top: 22px; text-align: center;
+          font-size: 13px; color: var(--gray-500); font-weight: 300;
+        }
+        .form-note a { color: var(--g600); text-decoration: none; font-family: 'Space Mono', monospace; font-weight: 400; }
+        .form-note a:hover { color: var(--g700); }
+        .form-fine {
+          margin-top: 20px; text-align: center;
+          font-size: 11px; color: var(--gray-400); font-weight: 300;
+          font-family: 'Space Mono', monospace; line-height: 1.6;
+        }
+        .form-fine a { color: var(--gray-500); text-decoration: underline; }
+
+        /* Social buttons stack */
+        .social-stack { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+
+        /* Right panel */
+        .right-panel { display: none; flex: 1; position: relative; overflow: hidden; z-index: 1; }
+        @media (min-width: 1024px) { .right-panel { display: flex; } }
+        .right-panel img {
+          position: absolute; inset: 0;
+          width: 100%; height: 100%; object-fit: cover; object-position: top;
+        }
+        .right-overlay {
+          position: absolute; inset: 0;
+          background: linear-gradient(
+            to top,
+            rgba(21,128,61,0.88) 0%,
+            rgba(21,128,61,0.30) 45%,
+            rgba(34,197,94,0.08) 100%
+          );
+        }
+        .right-grid {
+          position: absolute; inset: 0;
+          background-image:
+            linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+          background-size: 48px 48px;
+        }
+        .right-content {
+          position: absolute; bottom: 0; left: 0; right: 0;
+          padding: 48px; color: white;
+        }
+        .right-badge {
+          display: inline-flex; align-items: center; gap: 7px;
+          background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.25);
+          border-radius: 100px; padding: 6px 14px;
+          font-size: 11px; font-family: 'Space Mono', monospace;
+          letter-spacing: 1px; text-transform: uppercase;
+          margin-bottom: 20px; backdrop-filter: blur(8px);
+        }
+        .right-badge-dot {
+          width: 6px; height: 6px; background: var(--g400); border-radius: 50%;
+          animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+          0%,100% { opacity:1; transform:scale(1); }
+          50%      { opacity:0.5; transform:scale(0.8); }
+        }
+        .right-quote {
+          font-size: 22px; font-weight: 300; line-height: 1.5;
+          letter-spacing: -0.5px; margin-bottom: 24px; max-width: 480px;
+        }
+        .right-quote strong { font-weight: 500; }
+        .right-author-name {
+          font-family: 'Space Mono', monospace; font-size: 14px;
+          font-weight: 700; margin-bottom: 4px;
+        }
+        .right-author-role { font-size: 13px; color: rgba(255,255,255,0.65); font-weight: 300; }
+        .right-footer { display: flex; align-items: flex-end; justify-content: space-between; }
+        .stars { display: flex; gap: 4px; margin-bottom: 12px; }
+        .nav-btns { display: flex; gap: 8px; }
+        .nav-btn {
+          width: 40px; height: 40px; border-radius: 50%;
+          border: 1.5px solid rgba(255,255,255,0.3);
+          background: rgba(255,255,255,0.08); backdrop-filter: blur(8px);
+          display: flex; align-items: center; justify-content: center;
+          cursor: pointer; transition: background 0.2s, border-color 0.2s;
+          color: white;
+        }
+        .nav-btn:hover:not(:disabled) {
+          background: rgba(255,255,255,0.18); border-color: rgba(255,255,255,0.5);
+        }
+        .nav-btn:disabled { opacity: 0.35; cursor: not-allowed; }
       `}</style>
 
-      <div style={{
-        display: 'flex',
-        width: '100vw',
-        minHeight: '100vh',
-        position: 'fixed',
-        top: 0, left: 0, right: 0, bottom: 0,
-      }}>
+      <div className="signup-root">
+        <div className="grid-bg" />
+        <div className="orb orb-1" />
+        <div className="orb orb-2" />
 
-        {/* ── LEFT ── */}
-        <div style={{
-          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          backgroundColor: '#ffffff', padding: '2rem', overflowY: 'auto',
-        }}>
-          <div style={{ width: '100%', maxWidth: '360px' }}>
+        {/* ── LEFT PANEL ── */}
+        <div className="left-panel">
+          <div className="form-wrap">
 
             {/* Logo */}
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '2rem' }}>
-              <div style={{
-                width: '48px', height: '48px', borderRadius: '50%',
-                background: 'linear-gradient(135deg, #f87171, #6366f1)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                boxShadow: '0 4px 14px rgba(0,0,0,0.15)',
-              }}>
-                <div style={{ width: '24px', height: '24px', borderRadius: '50%', backgroundColor: '#fff' }} />
+            <a className="logo">
+              <div className="logo-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                </svg>
               </div>
-            </div>
+              <span className="logo-text">Electricity<span>.</span>sim</span>
+            </a>
 
-            {/* ── STEP 1: initial ── */}
+            {/* ── STEP 1 ── */}
             {step === 'initial' && (
               <div className="step-fade">
-                <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                  <h1 style={{ fontSize: '1.875rem', fontWeight: 600, color: '#111827', margin: '0 0 0.5rem' }}>
-                    Create an account
-                  </h1>
-                  <p style={{ color: '#6b7280', margin: 0 }}>Start your 30-day free trial.</p>
-                </div>
+                <h1 className="form-title">Create an <strong>account</strong></h1>
+                <p className="form-sub">Start your 30-day free trial.</p>
 
-                {error && <ErrorBox message={error} />}
+                {error && <div className="error-box"><p>// {error}</p></div>}
 
-                {/* Social Buttons */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1.5rem' }}>
-                  <button onClick={handleGoogleSignup} disabled={isLoading} style={socialBtnStyle} className="social-btn">
-                    <svg style={{ width: 20, height: 20, flexShrink: 0 }} viewBox="0 0 24 24">
-                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                <div className="social-stack">
+                  <button onClick={handleGoogleSignup} disabled={isLoading} className="btn-social">
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                      <path d="M17.64 9.2045c0-.638-.0573-1.252-.1636-1.8409H9v3.4814h4.8436c-.2086 1.125-.8427 2.0782-1.7959 2.716v2.2581h2.9086c1.7018-1.5668 2.6836-3.874 2.6836-6.615z" fill="#4285F4"/>
+                      <path d="M9 18c2.43 0 4.4673-.8059 5.9564-2.1814l-2.9086-2.2581c-.8059.54-1.8368.859-3.0477.859-2.3441 0-4.3282-1.5832-5.036-3.7105H.957v2.3318C2.4382 15.9832 5.4818 18 9 18z" fill="#34A853"/>
+                      <path d="M3.964 10.71c-.18-.54-.2827-1.1168-.2827-1.71s.1027-1.17.2827-1.71V4.9582H.957A8.9965 8.9965 0 000 9c0 1.452.3477 2.8268.957 4.0418L3.964 10.71z" fill="#FBBC05"/>
+                      <path d="M9 3.5795c1.3214 0 2.5077.4541 3.4405 1.346l2.5813-2.5814C13.4627.8918 11.4255 0 9 0 5.4818 0 2.4382 2.0168.957 4.9582L3.964 7.29C4.6718 5.1627 6.6559 3.5795 9 3.5795z" fill="#EA4335"/>
                     </svg>
-                    <span style={{ color: '#374151', fontWeight: 500 }}>Sign up with Google</span>
+                    Sign up with Google
                   </button>
 
-                  <button onClick={handleFacebookSignup} disabled={isLoading} style={socialBtnStyle} className="social-btn">
-                    <svg style={{ width: 20, height: 20, flexShrink: 0 }} fill="#1877F2" viewBox="0 0 24 24">
+                  <button onClick={handleFacebookSignup} disabled={isLoading} className="btn-social">
+                    <svg width="18" height="18" fill="#1877F2" viewBox="0 0 24 24">
                       <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                     </svg>
-                    <span style={{ color: '#374151', fontWeight: 500 }}>Sign up with Facebook</span>
+                    Sign up with Facebook
                   </button>
 
-                  <button onClick={handleAppleSignup} disabled={isLoading} style={socialBtnStyle} className="social-btn">
-                    <svg style={{ width: 20, height: 20, flexShrink: 0 }} fill="#000" viewBox="0 0 24 24">
+                  <button onClick={handleAppleSignup} disabled={isLoading} className="btn-social">
+                    <svg width="18" height="18" fill="#000" viewBox="0 0 24 24">
                       <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
                     </svg>
-                    <span style={{ color: '#374151', fontWeight: 500 }}>Sign up with Apple</span>
+                    Sign up with Apple
                   </button>
                 </div>
 
-                {/* Divider */}
-                <div style={{ position: 'relative', marginBottom: '1.5rem' }}>
-                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center' }}>
-                    <div style={{ width: '100%', borderTop: '1px solid #d1d5db' }} />
-                  </div>
-                  <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', fontSize: '0.875rem' }}>
-                    <span style={{ padding: '0 0.5rem', backgroundColor: '#fff', color: '#6b7280' }}>OR</span>
-                  </div>
+                <div className="divider">
+                  <div className="divider-line" />
+                  <span className="divider-text">OR</span>
+                  <div className="divider-line" />
                 </div>
 
-                {/* Email Field */}
-                <form onSubmit={handleEmailNext} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter your email"
-                    required
-                    style={inputStyle}
-                  />
-                  <button type="submit" style={primaryBtnStyle} className="primary-btn">
-                    Get started
-                  </button>
+                <form onSubmit={handleEmailNext}>
+                  <div className="field">
+                    <label>// email</label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      required
+                    />
+                  </div>
+                  <button type="submit" className="btn-primary">Get started →</button>
                 </form>
 
-                <p style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.875rem', color: '#6b7280' }}>
+                <p className="form-note">
                   Already have an account?{' '}
-                  <a href="/login" style={{ color: '#dc2626', fontWeight: 500, textDecoration: 'none' }}>Log in</a>
+                  <Link href="/login">log_in</Link>
                 </p>
               </div>
             )}
 
-            {/* ── STEP 2: details ── */}
+            {/* ── STEP 2 ── */}
             {step === 'details' && (
               <div className="step-fade">
-                {/* Back button */}
-                <button
-                  onClick={() => { setStep('initial'); setError(''); }}
-                  className="back-btn"
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '0.375rem',
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    color: '#6b7280', fontSize: '0.875rem', padding: 0,
-                    marginBottom: '1.5rem', transition: 'color 0.15s',
-                  }}
-                >
-                  <svg style={{ width: 16, height: 16 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                <button onClick={() => { setStep('initial'); setError(''); }} className="btn-back">
+                  <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/>
                   </svg>
-                  Back
+                  ← back
                 </button>
 
-                <div style={{ marginBottom: '2rem' }}>
-                  <h1 style={{ fontSize: '1.875rem', fontWeight: 600, color: '#111827', margin: '0 0 0.5rem' }}>
-                    Almost there
-                  </h1>
-                  <p style={{ color: '#6b7280', margin: 0 }}>
-                    Creating account for{' '}
-                    <span style={{ color: '#111827', fontWeight: 500 }}>{email}</span>
-                  </p>
-                </div>
+                <h1 className="form-title">Almost <strong>there</strong></h1>
+                <p className="form-sub">Creating account for <strong>{email}</strong></p>
 
-                {error && <ErrorBox message={error} />}
+                {error && <div className="error-box"><p>// {error}</p></div>}
 
-                <form onSubmit={handleFinalSignup} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {/* Full Name */}
-                  <div>
-                    <label style={labelStyle}>Full name</label>
+                <form onSubmit={handleFinalSignup}>
+                  <div className="field">
+                    <label>// full_name</label>
                     <input
-                      type="text"
-                      value={fullName}
+                      type="text" value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      placeholder="Jane Smith"
-                      required
-                      disabled={isLoading}
-                      style={inputStyle}
+                      placeholder="Jane Smith" required disabled={isLoading}
                     />
                   </div>
-
-                  {/* Password */}
-                  <div>
-                    <label style={labelStyle}>Password</label>
+                  <div className="field">
+                    <label>// password</label>
                     <input
-                      type="password"
-                      value={password}
+                      type="password" value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Min. 8 characters"
-                      required
-                      disabled={isLoading}
-                      style={inputStyle}
+                      placeholder="Min. 8 characters" required disabled={isLoading}
                     />
                   </div>
-
-                  {/* Confirm Password */}
-                  <div>
-                    <label style={labelStyle}>Confirm password</label>
+                  <div className="field">
+                    <label>// confirm_password</label>
                     <input
-                      type="password"
-                      value={confirmPassword}
+                      type="password" value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="Repeat your password"
-                      required
-                      disabled={isLoading}
-                      style={inputStyle}
+                      placeholder="Repeat your password" required disabled={isLoading}
                     />
                   </div>
-
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    style={{ ...primaryBtnStyle, opacity: isLoading ? 0.6 : 1, cursor: isLoading ? 'not-allowed' : 'pointer' }}
-                    className="primary-btn"
-                  >
-                    {isLoading ? 'Creating account…' : 'Create account'}
+                  <button type="submit" disabled={isLoading} className="btn-primary">
+                    {isLoading ? 'Creating account…' : 'Create account →'}
                   </button>
                 </form>
 
-                <p style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.75rem', color: '#9ca3af' }}>
+                <p className="form-fine">
                   By creating an account you agree to our{' '}
-                  <a href="/terms" style={{ color: '#6b7280', textDecoration: 'underline' }}>Terms</a>
-                  {' '}and{' '}
-                  <a href="/privacy" style={{ color: '#6b7280', textDecoration: 'underline' }}>Privacy Policy</a>.
+                  <a href="/terms">Terms</a> and <a href="/privacy">Privacy Policy</a>.
                 </p>
               </div>
             )}
@@ -335,58 +496,60 @@ export default function SignUpPage() {
           </div>
         </div>
 
-        {/* ── RIGHT: Testimonial ── */}
-        <div className="signup-right" style={{ flex: 1, position: 'relative', flexDirection: 'column' }}>
-          <div style={{
-            position: 'absolute', inset: 0,
-            backgroundImage: `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('/testimonial-image.jpg')`,
-            backgroundSize: 'cover', backgroundPosition: 'center',
-          }} />
-          <div style={{
-            position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
-            justifyContent: 'flex-end', padding: '3rem', color: '#fff',
-          }}>
-            <div style={{ maxWidth: '32rem' }}>
-              <blockquote style={{ fontSize: '1.5rem', fontWeight: 500, lineHeight: 1.5, margin: '0 0 1.5rem' }}>
-                "{testimonials[currentTestimonial].quote}"
-              </blockquote>
-              <div style={{ marginBottom: '1rem' }}>
-                <p style={{ fontWeight: 600, fontSize: '1.125rem', margin: '0 0 0.25rem' }}>
-                  {testimonials[currentTestimonial].author}
-                </p>
-                <p style={{ fontSize: '0.875rem', color: '#e5e7eb', margin: '0 0 0.125rem' }}>
-                  {testimonials[currentTestimonial].role}
-                </p>
-                <p style={{ fontSize: '0.875rem', color: '#d1d5db', margin: 0 }}>
-                  {testimonials[currentTestimonial].company}
-                </p>
+        {/* ── RIGHT PANEL ── */}
+        <div className="right-panel">
+          <img
+            src="https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=1200&q=80"
+            alt="Background"
+          />
+          <div className="right-overlay" />
+          <div className="right-grid" />
+
+          <div className="right-content">
+            <div className="right-badge">
+              <span className="right-badge-dot" />
+              verified user · 5-star rated
+            </div>
+
+            <blockquote className="right-quote">
+              "{testimonials[currentTestimonial].quote}"
+            </blockquote>
+
+            <div className="right-footer">
+              <div>
+                <p className="right-author-name">{testimonials[currentTestimonial].author}</p>
+                <p className="right-author-role">{testimonials[currentTestimonial].role}</p>
+                <p className="right-author-role">{testimonials[currentTestimonial].company}</p>
               </div>
-              <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '1.5rem' }}>
-                {[...Array(5)].map((_, i) => (
-                  <svg key={i} style={{ width: 20, height: 20, fill: '#fff' }} viewBox="0 0 20 20">
-                    <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
-                  </svg>
-                ))}
-              </div>
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button
-                  onClick={() => setCurrentTestimonial(Math.max(0, currentTestimonial - 1))}
-                  disabled={currentTestimonial === 0}
-                  style={navBtnStyle}
-                >
-                  <svg style={{ width: 20, height: 20 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
-                <button
-                  onClick={() => setCurrentTestimonial(Math.min(testimonials.length - 1, currentTestimonial + 1))}
-                  disabled={currentTestimonial === testimonials.length - 1}
-                  style={navBtnStyle}
-                >
-                  <svg style={{ width: 20, height: 20 }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
+
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px' }}>
+                <div className="stars">
+                  {[...Array(5)].map((_, i) => (
+                    <svg key={i} width="18" height="18" viewBox="0 0 20 20" fill="rgba(255,255,255,0.9)">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+                    </svg>
+                  ))}
+                </div>
+                <div className="nav-btns">
+                  <button
+                    className="nav-btn"
+                    onClick={() => setCurrentTestimonial(Math.max(0, currentTestimonial - 1))}
+                    disabled={currentTestimonial === 0}
+                  >
+                    <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7"/>
+                    </svg>
+                  </button>
+                  <button
+                    className="nav-btn"
+                    onClick={() => setCurrentTestimonial(Math.min(testimonials.length - 1, currentTestimonial + 1))}
+                    disabled={currentTestimonial === testimonials.length - 1}
+                  >
+                    <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/>
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -396,52 +559,3 @@ export default function SignUpPage() {
     </>
   );
 }
-
-// ── Small helper ──
-function ErrorBox({ message }: { message: string }) {
-  return (
-    <div style={{
-      marginBottom: '1rem', padding: '0.75rem',
-      backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.5rem',
-    }}>
-      <p style={{ fontSize: '0.875rem', color: '#dc2626', margin: 0 }}>{message}</p>
-    </div>
-  );
-}
-
-// ── Shared styles ──
-const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '0.75rem 1rem', boxSizing: 'border-box',
-  border: '1px solid #d1d5db', borderRadius: '0.5rem',
-  fontSize: '1rem', outline: 'none', color: '#111827',
-  transition: 'border-color 0.15s, box-shadow 0.15s',
-  backgroundColor: '#fff',
-};
-
-const labelStyle: React.CSSProperties = {
-  display: 'block', fontSize: '0.875rem', fontWeight: 500,
-  color: '#374151', marginBottom: '0.375rem',
-};
-
-const primaryBtnStyle: React.CSSProperties = {
-  width: '100%', padding: '0.75rem',
-  backgroundColor: '#dc2626', color: '#fff',
-  border: 'none', borderRadius: '0.5rem',
-  fontSize: '1rem', fontWeight: 500, cursor: 'pointer',
-  transition: 'background-color 0.15s',
-};
-
-const socialBtnStyle: React.CSSProperties = {
-  width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-  gap: '0.75rem', padding: '0.75rem 1rem',
-  border: '1px solid #d1d5db', borderRadius: '0.5rem',
-  backgroundColor: '#fff', cursor: 'pointer', transition: 'background-color 0.15s',
-};
-
-const navBtnStyle: React.CSSProperties = {
-  width: 40, height: 40, borderRadius: '50%',
-  backgroundColor: 'rgba(255,255,255,0.2)',
-  border: 'none', cursor: 'pointer', color: '#fff',
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-  backdropFilter: 'blur(4px)',
-};
