@@ -15,3 +15,14 @@ export function wirePath(x1: number, y1: number, x2: number, y2: number): string
   const mx = (x1 + x2) / 2;
   return `M ${x1},${y1} C ${mx},${y1} ${mx},${y2} ${x2},${y2}`;
 }
+
+export function generateClassCode(length = 6) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  let result = ''
+
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+
+  return result
+}
