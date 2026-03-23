@@ -1,6 +1,7 @@
 // ─── House Simulator Types ─────────────────────────────────────────────────────
 
 export type CircuitType = "lighting" | "outlet" | "ground";
+export type ConductorType = "phase" | "neutral" | "ground";
 
 export type RoomType = "living" | "bedroom" | "kitchen" | "bathroom" | "garage";
 
@@ -23,7 +24,8 @@ export type ElectricalElementType =
   | "panel_differential"
   | "conduit_pvc"
   | "conduit_emt"
-  | "cable_tray";
+  | "cable_tray"
+  | "power_source";
 
 export interface ElectricalElement {
   id: string;
@@ -55,7 +57,7 @@ export interface Wire {
   fromElementId: string;
   toElementId: string;
   circuitId: string;
-  isGroundWire: boolean;
+  conductorType: ConductorType;
   path: { x: number; y: number }[];
 }
 
