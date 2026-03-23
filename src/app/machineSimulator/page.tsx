@@ -3,12 +3,9 @@
 import { useState, useCallback, useRef } from "react";
 import { CompProps, CompType, CompDef, PlacedComp, Connection, CompatLevel, TransformerCircuit, PhysicsResult, CompatResult } from "./type"
 import {GRID, COMP_W, COMP_H, COMP_DEFS} from "./constants"
-<<<<<<< HEAD
 import { CompSVG, SVGCompType } from "@/components/electrical/symbols/CompSVG";
 import AssignmentSimulatorWrapper from "@/components/assignments/AssignmentSimulatorWrapper";
-=======
 import { checkCompatibility, validateCircuit} from "./validation"
->>>>>>> 49e1afca1de9b216c0e79b4ee6940ddadd444745
 
 
 // ─── Física ───────────────────────────────────────────────────────────────────
@@ -314,7 +311,6 @@ export default function TransformerSimulator() {
             <div key={comp.id}
               onMouseDown={e=>onCompMouseDown(comp.id,e)}
               style={{position:"absolute",left:comp.x-COMP_W/2,top:comp.y-COMP_H/2,
-<<<<<<< HEAD
                 cursor:isDragging.current&&dragRef.current?.id===comp.id?"grabbing":"grab"}}>
                   <div style={{ filter: isSelected ? "drop-shadow(0 0 6px #3b82f6)" : undefined }}>
                     <CompSVG
@@ -329,12 +325,6 @@ export default function TransformerSimulator() {
                       selected={isSelected}
                     />
                   </div>
-=======
-                cursor:draggingCompId===comp.id?"grabbing":"grab"}}>
-
-              <CompSymbol type={comp.type} active={isActive} props={comp.props} selected={isSelected}/>
-
->>>>>>> 49e1afca1de9b216c0e79b4ee6940ddadd444745
               <div style={{textAlign:"center",fontSize:8,color:isSelected?"#60a5fa":"#1e3a52",marginTop:2,letterSpacing:"0.05em"}}>
                 {comp.label}
               </div>

@@ -1,53 +1,52 @@
+// ─── Tipos base ───────────────────────────────────────────────────────────────
 
 export type CompType =
   | "battery"
+  | "source"
   | "resistor"
   | "luminaire"
-  | "switch"
-  | "breaker"
-  | "capacitor"
   | "outlet"
-  | "motor"
-  | "transformer"
-  | "stator"
-  | "rotor";
+  | "led"
+  | "switch"
+  | "breaker";
 
-export interface Port {
-  id: string;       // e.g. "left" | "right"
-  dx: number;       // offset from component center
+// Alias para compatibilidad (ambos apuntan al mismo tipo)
+export type ComponentType = CompType;
+
+export type Port = {
+  id: string;
+  label?: string;
+  dx: number; // offset relativo al componente
   dy: number;
-  label: string;
-}
+};
 
-export interface Component {
+export type Component = {
   id: string;
   type: CompType;
   x: number;
   y: number;
-  label: string;
-  // electrical props
+  ports?: Port[];  // opcional
   voltage?: number;
   resistance?: number;
   power?: number;
-  isOn?: boolean;
-  ratedVoltage?: number;
-  health?: "ok" | "warning" | "fault";
-}
+  closed?: boolean;
+  isOn?: boolean;  // para toggle
+  label?: string;
+};
 
-export interface Wire {
+// ─── Wire ─────────────────────────────────────────────────────────────────────
+
+export type WirePoint = { x: number; y: number };
+
+export type Wire = {
   id: string;
   fromCompId: string;
   fromPortId: string;
   toCompId: string;
   toPortId: string;
-}
-
-export interface AnalysisResult {
-  current: number;           // total circuit current (A)
-  totalVoltage: number;      // total source voltage
-  totalResistance: number;   // equivalent resistance
-  totalPower: number;
-  compValues: Record<string, { v: number; i: number; p: number }>;
-  circuitClosed: boolean;
-  shortCircuit?: boolean;
-}
+  /** Puntos intermedios del cable. Los extremos (comp ports) se calculan en runtime,
+   *  no se almacenan aquí para mantener consistencia al mover componentes. */
+  points: WirePoint[];
+  /** Índice del nodo actualmente arrastrado (-1 = ninguno) */
+  draggingNodeIndex: number | null;
+};
