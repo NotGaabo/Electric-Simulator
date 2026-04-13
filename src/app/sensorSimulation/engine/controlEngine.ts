@@ -1,4 +1,4 @@
-import { AutomationNode, AutomationState, Wire, Signal, LampNode } from "./types";
+import { AutomationNode, AutomationState, Wire, Signal } from "./types";
 import { updateTimer } from "./timerEngine";
 import { AND, OR } from "./logicGates";
 
@@ -34,44 +34,39 @@ function resolveInputSignals(
 }
 
 /**
- * Lógica one-shot para LampNode:
- * - Si onDurationMs === 0 → comportamiento normal (activa mientras haya señal)
+ * Lógica one-shot para Sensor:
+ * - Si onDurationMs === 0 → comportamiento normal (toggle manual)
  * - Si onDurationMs > 0 → en flanco de subida, arranca cuenta; al llegar a 0 se apaga sola
  */
-function updateLamp(node: LampNode, inputSignal: Signal, deltaMs: number): LampNode {
-  const { onDurationMs, onRemainingMs, prevInput, active } = node;
+function updateSensor(node: Extract<AutomationNode, { type: "sensor" }>, deltaMs: number) {
+  const { onDurationMs, onRemainingMs, prevMotion, motion } = node;
 
-  // Sin timer configurado → comportamiento directo
   if (onDurationMs <= 0) {
-    return { ...node, active: inputSignal, prevInput: inputSignal, onRemainingMs: 0 };
+    return { ...node, onRemainingMs: 0, prevMotion: motion };
   }
 
-  // Flanco de subida (OFF→ON): arrancar one-shot
-  if (inputSignal && !prevInput) {
+  if (motion && !prevMotion) {
     return {
       ...node,
-      active: true,
-      prevInput: true,
+      motion: true,
+      prevMotion: true,
       onRemainingMs: onDurationMs,
     };
   }
 
-  // One-shot en curso: contar hacia atrás
-  if (active && onRemainingMs > 0) {
+  if (motion && onRemainingMs > 0) {
     const next = onRemainingMs - deltaMs;
     if (next <= 0) {
-      // Tiempo agotado → apagar
-      return { ...node, active: false, prevInput: inputSignal, onRemainingMs: 0 };
+      return { ...node, motion: false, prevMotion: false, onRemainingMs: 0 };
     }
-    return { ...node, onRemainingMs: next, prevInput: inputSignal };
+    return { ...node, onRemainingMs: next, prevMotion: true };
   }
 
-  // Sin one-shot activo y señal baja → mantener apagada
-  if (!inputSignal) {
-    return { ...node, prevInput: false };
+  if (!motion) {
+    return { ...node, prevMotion: false };
   }
 
-  return { ...node, prevInput: inputSignal };
+  return { ...node, prevMotion: motion };
 }
 
 export function runControlCycle(
@@ -80,6 +75,12 @@ export function runControlCycle(
 ): AutomationState {
   let nodes = [...state.nodes];
   const { wires } = state;
+
+  // Step 0: Actualizar sensores (one-shot opcional)
+  nodes = nodes.map((node) => {
+    if (node.type !== "sensor") return node;
+    return updateSensor(node, deltaMs);
+  });
 
   // Step 1: Actualizar timers
   nodes = nodes.map((node) => {
@@ -118,12 +119,12 @@ export function runControlCycle(
     return { ...node, coil, contactClosed: coil };
   });
 
-  // Step 3: Activar lámparas con lógica one-shot
+  // Step 3: Activar lámparas (comportamiento directo)
   nodes = nodes.map((node) => {
     if (node.type !== "lamp") return node;
     const inputSignals = resolveInputSignals(node.id, nodes, wires);
     const inputSignal = OR(...inputSignals);
-    return updateLamp(node as LampNode, inputSignal, deltaMs);
+    return { ...node, active: inputSignal };
   });
 
   // Step 4: Activar motores (comportamiento directo)

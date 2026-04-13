@@ -2,6 +2,7 @@
 
 import { NodeType } from "../engine/types";
 import { PALETTE_ITEMS } from "../constants";
+import { LuminaireSVG } from "@/components/electrical/symbols/LuminaireSVG";
 
 interface Props {
   onAddNode: (type: NodeType, x: number, y: number) => void;
@@ -13,24 +14,74 @@ export function Palette({ onAddNode }: Props) {
   };
 
   return (
-    <aside className="w-28 bg-gray-900 border-r border-gray-700 flex flex-col gap-2 p-2 shrink-0">
-      <p className="text-xs text-gray-400 font-bold uppercase tracking-wider text-center">
-        Palette
-      </p>
-      {PALETTE_ITEMS.map((item) => (
-        <div
-          key={item.type}
-          draggable
-          onDragStart={(e) => handleDragStart(e, item.type)}
-          className="flex flex-col items-center justify-center bg-gray-800 hover:bg-gray-700 border border-gray-600 rounded-lg p-2 cursor-grab text-white gap-1 select-none"
-        >
-          <span className="text-2xl">{item.icon}</span>
-          <span className="text-xs">{item.label}</span>
+    <aside
+      style={{
+        width: 192,
+        background: "#060d1a",
+        borderRight: "1px solid #1e293b",
+        display: "flex",
+        flexDirection: "column",
+        overflowY: "auto",
+        flexShrink: 0,
+      }}
+    >
+      <div style={{ padding: "14px 14px 8px", borderBottom: "1px solid #1e293b" }}>
+        <div style={{ fontSize: 10, color: "#4ade80", letterSpacing: "0.15em", marginBottom: 2 }}>
+          ⚡ AUTOMATION PALETTE
         </div>
-      ))}
-      <p className="text-xs text-gray-500 text-center mt-2">
-        Arrastra al canvas
-      </p>
+        <div style={{ fontSize: 8, color: "#58677b" }}>Arrastra → Lienzo</div>
+      </div>
+
+      <div style={{ paddingBottom: 10 }}>
+        {PALETTE_ITEMS.map((item) => (
+          <div
+            key={item.type}
+            draggable
+            onDragStart={(e) => handleDragStart(e, item.type)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "6px 14px",
+              cursor: "grab",
+              borderRadius: 6,
+              margin: "2px 6px",
+              transition: "background 0.15s",
+              userSelect: "none",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "rgba(74,222,128,0.07)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+            }}
+          >
+            <div
+              style={{
+                width: 36,
+                height: 28,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "rgba(255,255,255,0.04)",
+                borderRadius: 5,
+                flexShrink: 0,
+                overflow: "hidden",
+                fontSize: 18,
+              }}
+            >
+              {item.type === "lamp" ? (
+                <div style={{ transform: "scale(0.45)", transformOrigin: "center" }}>
+                  <LuminaireSVG />
+                </div>
+              ) : (
+                item.icon
+              )}
+            </div>
+            <span style={{ fontSize: 11, color: "#94a3b8" }}>{item.label}</span>
+          </div>
+        ))}
+      </div>
     </aside>
   );
 }

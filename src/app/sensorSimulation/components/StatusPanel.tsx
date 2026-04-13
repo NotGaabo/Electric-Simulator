@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { AutomationNode, LampNode } from "../engine/types";
+import { LuminaireSVG } from "@/components/electrical/symbols/LuminaireSVG";
 
 interface Props {
   nodes: AutomationNode[];
   selectedNodeId: string | null;
-  onSetLampDuration: (id: string, durationMs: number) => void;
+  onSetSensorDuration: (id: string, durationMs: number) => void;
 }
 
 function StatusRow({
@@ -19,12 +20,25 @@ function StatusRow({
   active?: boolean;
 }) {
   return (
-    <div className="flex justify-between items-center py-0.5">
-      <span className="text-gray-400 text-xs">{label}</span>
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        padding: "2px 0",
+      }}
+    >
+      <span style={{ color: "#58677b", fontSize: 10 }}>{label}</span>
       <span
-        className={`text-xs font-mono px-1 rounded ${
-          active ? "bg-green-500 text-black" : "bg-gray-700 text-gray-300"
-        }`}
+        style={{
+          fontSize: 10,
+          fontFamily: "'Courier New', monospace",
+          padding: "1px 6px",
+          borderRadius: 4,
+          background: active ? "rgba(74,222,128,0.15)" : "#0f172a",
+          color: active ? "#4ade80" : "#94a3b8",
+          border: `1px solid ${active ? "rgba(74,222,128,0.4)" : "#1e293b"}`,
+        }}
       >
         {value}
       </span>
@@ -32,15 +46,15 @@ function StatusRow({
   );
 }
 
-function LampConfig({
-  lamp,
+function SensorConfig({
+  sensor,
   onSetDuration,
 }: {
-  lamp: LampNode;
+  sensor: Extract<AutomationNode, { type: "sensor" }>;
   onSetDuration: (ms: number) => void;
 }) {
   const [inputSec, setInputSec] = useState(
-    lamp.onDurationMs > 0 ? String(lamp.onDurationMs / 1000) : ""
+    sensor.onDurationMs > 0 ? String(sensor.onDurationMs / 1000) : ""
   );
 
   const handleApply = () => {
@@ -56,54 +70,73 @@ function LampConfig({
   };
 
   return (
-    <div className="border border-blue-500/40 rounded-lg p-2 bg-blue-950/30 flex flex-col gap-2">
-      <p className="text-blue-300 text-xs font-bold uppercase tracking-wider">
-        💡 Config Lámpara
+    <div
+      style={{
+        border: "1px solid #1e3a5f",
+        borderRadius: 8,
+        padding: 10,
+        background: "rgba(96,165,250,0.05)",
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+      }}
+    >
+      <p
+        style={{
+          color: "#93c5fd",
+          fontSize: 9,
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+          fontWeight: "bold",
+        }}
+      >
+        📡 Config Sensor
       </p>
-      <p className="text-gray-400 text-[10px]">ID: {lamp.id.slice(-6)}</p>
+      <p style={{ color: "#58677b", fontSize: 9 }}>ID: {sensor.id.slice(-6)}</p>
 
-      {/* Estado actual */}
-      <div className="flex flex-col gap-0.5">
-        <StatusRow
-          label="Estado"
-          value={lamp.active ? "ON" : "OFF"}
-          active={lamp.active}
-        />
-        {lamp.onDurationMs > 0 && (
-          <StatusRow
-            label="Timer"
-            value={`${lamp.onDurationMs / 1000}s`}
-            active={lamp.onDurationMs > 0}
-          />
+      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <StatusRow label="Estado" value={sensor.motion ? "ON" : "OFF"} active={sensor.motion} />
+        {sensor.onDurationMs > 0 && (
+          <StatusRow label="Timer" value={`${sensor.onDurationMs / 1000}s`} active />
         )}
-        {lamp.active && lamp.onRemainingMs > 0 && (
+        {sensor.motion && sensor.onRemainingMs > 0 && (
           <StatusRow
             label="Restante"
-            value={`${(lamp.onRemainingMs / 1000).toFixed(1)}s`}
+            value={`${(sensor.onRemainingMs / 1000).toFixed(1)}s`}
             active
           />
         )}
       </div>
 
-      {/* Barra de progreso one-shot */}
-      {lamp.active && lamp.onDurationMs > 0 && (
-        <div className="w-full h-1.5 bg-gray-700 rounded-full overflow-hidden">
+      {sensor.motion && sensor.onDurationMs > 0 && (
+        <div
+          style={{
+            width: "100%",
+            height: 6,
+            background: "#0f172a",
+            borderRadius: 999,
+            overflow: "hidden",
+            border: "1px solid #1e293b",
+          }}
+        >
           <div
-            className="h-full bg-yellow-400 transition-all duration-100 rounded-full"
             style={{
+              height: "100%",
+              background: "#facc15",
+              transition: "all 0.1s",
+              borderRadius: 999,
               width: `${Math.min(
                 100,
-                (lamp.onRemainingMs / lamp.onDurationMs) * 100
+                (sensor.onRemainingMs / sensor.onDurationMs) * 100
               )}%`,
             }}
           />
         </div>
       )}
 
-      {/* Configuración de tiempo */}
-      <div className="flex flex-col gap-1 mt-1">
-        <p className="text-gray-400 text-[10px]">Tiempo encendido (seg):</p>
-        <div className="flex gap-1">
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 2 }}>
+        <p style={{ color: "#58677b", fontSize: 9 }}>Tiempo encendido (seg):</p>
+        <div style={{ display: "flex", gap: 6 }}>
           <input
             type="number"
             min="0"
@@ -111,34 +144,58 @@ function LampConfig({
             value={inputSec}
             onChange={(e) => setInputSec(e.target.value)}
             placeholder="ej: 5"
-            className="flex-1 bg-gray-800 border border-gray-600 rounded px-2 py-1 text-white text-xs w-0 focus:border-blue-400 focus:outline-none"
+            style={{
+              flex: 1,
+              background: "#0f172a",
+              border: "1px solid #1e293b",
+              borderRadius: 4,
+              color: "#e2e8f0",
+              fontSize: 11,
+              padding: "4px 6px",
+              outline: "none",
+            }}
           />
           <button
             onClick={handleApply}
-            className="px-2 py-1 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-bold rounded"
+            style={{
+              padding: "4px 8px",
+              background: "transparent",
+              border: "1px solid #1e3a5f",
+              color: "#93c5fd",
+              fontSize: 10,
+              borderRadius: 4,
+              cursor: "pointer",
+            }}
           >
             ✓
           </button>
         </div>
-        {lamp.onDurationMs > 0 && (
+        {sensor.onDurationMs > 0 && (
           <button
             onClick={handleClear}
-            className="text-[10px] text-gray-500 hover:text-red-400 text-left"
+            style={{
+              fontSize: 9,
+              color: "#64748b",
+              background: "transparent",
+              border: "none",
+              textAlign: "left",
+              cursor: "pointer",
+              padding: 0,
+            }}
           >
             ✕ Quitar timer (modo directo)
           </button>
         )}
-        <p className="text-gray-600 text-[9px] leading-tight">
-          {lamp.onDurationMs > 0
-            ? "One-shot: se enciende y apaga sola"
-            : "Sin timer: sigue la señal de entrada"}
+        <p style={{ color: "#475569", fontSize: 9, lineHeight: 1.4 }}>
+          {sensor.onDurationMs > 0
+            ? "One-shot: emite pulso y se apaga solo"
+            : "Sin timer: se mantiene por toggle"}
         </p>
       </div>
 
-      {/* Presets rápidos */}
-      <div className="flex flex-col gap-1">
-        <p className="text-gray-500 text-[9px]">Presets:</p>
-        <div className="flex flex-wrap gap-1">
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        <p style={{ color: "#64748b", fontSize: 9 }}>Presets:</p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
           {[1, 3, 5, 10, 30].map((s) => (
             <button
               key={s}
@@ -146,11 +203,16 @@ function LampConfig({
                 setInputSec(String(s));
                 onSetDuration(s * 1000);
               }}
-              className={`px-1.5 py-0.5 rounded text-[9px] font-mono border transition-colors
-                ${lamp.onDurationMs === s * 1000
-                  ? "bg-yellow-500 border-yellow-400 text-black"
-                  : "bg-gray-800 border-gray-600 text-gray-300 hover:border-blue-400"
-                }`}
+              style={{
+                padding: "2px 6px",
+                borderRadius: 6,
+                fontSize: 9,
+                fontFamily: "'Courier New', monospace",
+                border: `1px solid ${sensor.onDurationMs === s * 1000 ? "#facc15" : "#1e293b"}`,
+                color: sensor.onDurationMs === s * 1000 ? "#0a0f1e" : "#94a3b8",
+                background: sensor.onDurationMs === s * 1000 ? "#facc15" : "#0f172a",
+                cursor: "pointer",
+              }}
             >
               {s}s
             </button>
@@ -161,7 +223,7 @@ function LampConfig({
   );
 }
 
-export function StatusPanel({ nodes, selectedNodeId, onSetLampDuration }: Props) {
+export function StatusPanel({ nodes, selectedNodeId, onSetSensorDuration }: Props) {
   const sensors = nodes.filter((n) => n.type === "sensor");
   const selectors = nodes.filter((n) => n.type === "selector");
   const contactors = nodes.filter((n) => n.type === "contactor");
@@ -169,22 +231,42 @@ export function StatusPanel({ nodes, selectedNodeId, onSetLampDuration }: Props)
   const lamps = nodes.filter((n) => n.type === "lamp") as LampNode[];
   const motors = nodes.filter((n) => n.type === "motor");
 
-  const selectedLamp =
+  const selectedSensor =
     selectedNodeId
-      ? (nodes.find((n) => n.id === selectedNodeId && n.type === "lamp") as LampNode | undefined)
+      ? (nodes.find((n) => n.id === selectedNodeId && n.type === "sensor") as
+          | Extract<AutomationNode, { type: "sensor" }>
+          | undefined)
       : undefined;
 
   return (
-    <aside className="w-52 bg-gray-900 border-l border-gray-700 p-3 flex flex-col gap-3 overflow-y-auto shrink-0">
-      <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">
+    <aside
+      style={{
+        width: 210,
+        background: "#060d1a",
+        borderLeft: "1px solid #1e293b",
+        padding: "14px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 12,
+        overflowY: "auto",
+        flexShrink: 0,
+      }}
+    >
+      <div
+        style={{
+          fontSize: 9,
+          color: "#8a8d96",
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+        }}
+      >
         Status
-      </p>
+      </div>
 
-      {/* Config de lámpara seleccionada */}
-      {selectedLamp && (
-        <LampConfig
-          lamp={selectedLamp}
-          onSetDuration={(ms) => onSetLampDuration(selectedLamp.id, ms)}
+      {selectedSensor && (
+        <SensorConfig
+          sensor={selectedSensor}
+          onSetDuration={(ms) => onSetSensorDuration(selectedSensor.id, ms)}
         />
       )}
 
@@ -212,8 +294,18 @@ export function StatusPanel({ nodes, selectedNodeId, onSetLampDuration }: Props)
 
       {contactors.map((n) =>
         n.type === "contactor" ? (
-          <div key={n.id} className="border border-gray-700 rounded p-1">
-            <p className="text-gray-500 text-xs mb-1">Contactor {n.id.slice(-4)}</p>
+          <div
+            key={n.id}
+            style={{
+              border: "1px solid #1e293b",
+              borderRadius: 6,
+              padding: 6,
+              background: "rgba(15,23,42,0.4)",
+            }}
+          >
+            <p style={{ color: "#64748b", fontSize: 10, marginBottom: 6 }}>
+              Contactor {n.id.slice(-4)}
+            </p>
             <StatusRow label="Bobina" value={n.coil ? "ON" : "OFF"} active={n.coil} />
             <StatusRow
               label="Contacto"
@@ -226,8 +318,18 @@ export function StatusPanel({ nodes, selectedNodeId, onSetLampDuration }: Props)
 
       {timers.map((n) =>
         n.type === "timer" ? (
-          <div key={n.id} className="border border-gray-700 rounded p-1">
-            <p className="text-gray-500 text-xs mb-1">Timer {n.id.slice(-4)}</p>
+          <div
+            key={n.id}
+            style={{
+              border: "1px solid #1e293b",
+              borderRadius: 6,
+              padding: 6,
+              background: "rgba(15,23,42,0.4)",
+            }}
+          >
+            <p style={{ color: "#64748b", fontSize: 10, marginBottom: 6 }}>
+              Timer {n.id.slice(-4)}
+            </p>
             <StatusRow label="Output" value={n.output ? "ON" : "OFF"} active={n.output} />
             <StatusRow
               label="Restante"
@@ -241,26 +343,35 @@ export function StatusPanel({ nodes, selectedNodeId, onSetLampDuration }: Props)
       {lamps.map((n) => (
         <div
           key={n.id}
-          className={`border rounded p-1 cursor-pointer transition-colors
-            ${selectedNodeId === n.id ? "border-blue-400 bg-blue-950/20" : "border-gray-700 hover:border-gray-500"}`}
-          onClick={() => {/* selección manejada desde canvas */}}
+          style={{
+            border: "1px solid #1e293b",
+            borderRadius: 6,
+            padding: 6,
+            cursor: "pointer",
+            background: "transparent",
+          }}
+          onClick={() => {
+            /* selección manejada desde canvas */
+          }}
         >
-          <p className="text-gray-500 text-xs mb-1 flex items-center gap-1">
-            <span>💡</span> Lámpara {n.id.slice(-4)}
-            {n.onDurationMs > 0 && (
-              <span className="ml-auto text-[9px] text-yellow-400 font-mono">
-                T:{n.onDurationMs / 1000}s
+          <p
+            style={{
+              color: "#64748b",
+              fontSize: 10,
+              marginBottom: 6,
+              display: "flex",
+              gap: 6,
+              alignItems: "center",
+            }}
+          >
+            <span style={{ width: 18, height: 14, display: "inline-flex" }}>
+              <span style={{ transform: "scale(0.25)", transformOrigin: "left center" }}>
+                <LuminaireSVG active={n.active} />
               </span>
-            )}
+            </span>
+            Lámpara {n.id.slice(-4)}
           </p>
           <StatusRow label="Estado" value={n.active ? "ON" : "OFF"} active={n.active} />
-          {n.active && n.onRemainingMs > 0 && (
-            <StatusRow
-              label="Restante"
-              value={`${(n.onRemainingMs / 1000).toFixed(1)}s`}
-              active
-            />
-          )}
         </div>
       ))}
 
@@ -276,12 +387,12 @@ export function StatusPanel({ nodes, selectedNodeId, onSetLampDuration }: Props)
       )}
 
       {nodes.length === 0 && (
-        <p className="text-gray-600 text-xs italic">Sin nodos</p>
+        <p style={{ color: "#475569", fontSize: 10, fontStyle: "italic" }}>Sin nodos</p>
       )}
 
-      {lamps.length > 0 && !selectedLamp && (
-        <p className="text-gray-600 text-[10px] italic text-center mt-1">
-          Clic en una 💡 para configurar su timer
+      {sensors.length > 0 && !selectedSensor && (
+        <p style={{ color: "#475569", fontSize: 9, fontStyle: "italic", textAlign: "center" }}>
+          Clic en un 📡 para configurar su timer
         </p>
       )}
     </aside>
