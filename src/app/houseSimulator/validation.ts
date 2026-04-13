@@ -1,218 +1,301 @@
-import { HouseState, ValidationError, ElectricalElement, Circuit, Wire } from "./types";
+import {
+  ComponentInstance,
+  Connection,
+  ConductorType,
+  HouseState,
+  PortTemplate,
+  ValidationIssue,
+} from "./types";
+import { hasActiveCircuits } from "./utils";
 
-export function validateInstallation(state: HouseState): ValidationError[] {
-  const errors: ValidationError[] = [];
-  const { elements, circuits, wires, rooms } = state;
+let issueSeq = 0;
+const nextIssueId = () => `issue-${++issueSeq}`;
 
-  // CORRECCIÓN Bug 8: contador LOCAL por llamada, nunca global
-  let ec = 0;
-  function makeError(
-    severity: ValidationError["severity"],
-    category: ValidationError["category"],
-    title: string,
-    message: string,
-    elementIds: string[],
-    fix: string
-  ): ValidationError {
-    return { id: `err-${++ec}`, severity, category, title, message, elementIds, fix };
-  }
+type PortConnectionMap = Map<string, Connection[]>;
 
-  const lights       = elements.filter(e => e.type === "light");
-  const outlets      = elements.filter(e => e.type === "outlet");
-  const groundRods   = elements.filter(e => e.type === "ground_rod");
-  const breakers     = elements.filter(e => e.type === "panel_breaker");
-  const differentials = elements.filter(e => e.type === "panel_differential");
-  const conduits     = elements.filter(e =>
-    e.type === "conduit_pvc" || e.type === "conduit_emt" || e.type === "cable_tray"
-  );
-
-  // ── RF-06: Luminarias y tomacorrientes ───────────────────────────────────────
-
-  if (lights.length === 0) {
-    errors.push(makeError("error", "RF-06",
-      "Sin luminarias",
-      "No hay luminarias instaladas en la vivienda. Se requiere al menos una por habitación.",
-      [],
-      "Arrastra luminarias desde el panel a cada habitación."
-    ));
-  }
-
-  if (outlets.length === 0) {
-    errors.push(makeError("error", "RF-06",
-      "Sin tomacorrientes",
-      "No hay tomacorrientes instalados. Las viviendas deben tener al menos uno por habitación.",
-      [],
-      "Arrastra tomacorrientes desde el panel izquierdo."
-    ));
-  }
-
-  // Cada habitación debe tener al menos una luminaria
-  for (const room of rooms) {
-    if (!lights.some(e => e.roomId === room.id)) {
-      errors.push(makeError("warning", "RF-06",
-        `${room.name} sin iluminación`,
-        `La habitación "${room.name}" no tiene luminaria instalada.`,
-        [],
-        `Coloca al menos una luminaria en ${room.name}.`
-      ));
-    }
-  }
-
-  // CORRECCIÓN Bug 3: cada luminaria debe tener un interruptor conectado por cable
-  const switchedLights = new Set<string>();
-  for (const w of wires) {
-    const fromEl = elements.find(e => e.id === w.fromElementId);
-    const toEl   = elements.find(e => e.id === w.toElementId);
-    if (fromEl?.type === "switch" && toEl?.type === "light")   switchedLights.add(toEl.id);
-    if (toEl?.type   === "switch" && fromEl?.type === "light") switchedLights.add(fromEl.id);
-  }
-  for (const light of lights) {
-    if (!switchedLights.has(light.id)) {
-      errors.push(makeError("warning", "RF-06",
-        "Luminaria sin interruptor",
-        `La luminaria "${light.label}" no está conectada a un interruptor.`,
-        [light.id],
-        "Conecta un interruptor a esta luminaria."
-      ));
-    }
-  }
-
-  // ── RF-07: Tablero de distribución ───────────────────────────────────────────
-
-  if (breakers.length === 0) {
-    errors.push(makeError("error", "RF-07",
-      "Sin interruptores termomagnéticos",
-      "El tablero no tiene interruptores termomagnéticos instalados.",
-      [],
-      "Arrastra al menos un interruptor termomagnético al tablero."
-    ));
-  }
-
-  if (differentials.length === 0) {
-    errors.push(makeError("error", "RF-07",
-      "Sin interruptor diferencial",
-      "No hay interruptor diferencial en el tablero. Es obligatorio para protección ante fallas a tierra.",
-      [],
-      "Agrega un interruptor diferencial al tablero de distribución."
-    ));
-  }
-
-  // CORRECCIÓN Bug 5: solo verificar breakerId — isProtected es redundante y nunca confiable
-  for (const circuit of circuits) {
-    if (!circuit.breakerId) {
-      errors.push(makeError("warning", "RF-07",
-        "Circuito sin protección",
-        `El circuito "${circuit.name}" no tiene un termomagnético asignado.`,
-        circuit.elementIds,
-        "Asigna un interruptor termomagnético a este circuito."
-      ));
-    }
-
-    // Protección diferencial: existe diferencial en el tablero y el circuito tiene breaker
-    const hasdifferential = differentials.length > 0;
-    if (circuit.breakerId && !hasdifferential) {
-      errors.push(makeError("info", "RF-07",
-        "Circuito sin diferencial",
-        `El circuito "${circuit.name}" no cuenta con protección diferencial.`,
-        circuit.elementIds,
-        "Instala un interruptor diferencial en el tablero."
-      ));
-    }
-  }
-
-  // ── RF-08: Canalización ───────────────────────────────────────────────────────
-
-  if (conduits.length === 0 && elements.length > 3) {
-    errors.push(makeError("warning", "RF-08",
-      "Sin canalización",
-      "No se han colocado tuberías ni canaletas para proteger el cableado.",
-      [],
-      "Agrega tuberías PVC, EMT o canaletas para encerrar los cables."
-    ));
-  }
-
-  // ── RF-09: Puesta a tierra ────────────────────────────────────────────────────
-
-  if (groundRods.length === 0) {
-    errors.push(makeError("error", "RF-09",
-      "Sin sistema de puesta a tierra",
-      "No hay varilla de tierra instalada. La puesta a tierra es obligatoria.",
-      [],
-      "Instala una varilla de puesta a tierra en el exterior de la vivienda."
-    ));
-  }
-
-  // CORRECCIÓN Bug 4: verificar también si hay cable de tierra conectado, no solo el flag
-  for (const outlet of outlets) {
-    const hasGroundWire = wires.some(w =>
-      (w.fromElementId === outlet.id || w.toElementId === outlet.id) && w.conductorType === "ground"
-    );
-    if (!outlet.isGrounded && !hasGroundWire) {
-      errors.push(makeError("warning", "RF-09",
-        "Tomacorriente sin tierra",
-        `El tomacorriente "${outlet.label}" no tiene conexión a tierra.`,
-        [outlet.id],
-        "Conecta el conductor de tierra (verde/amarillo) o marca el elemento como aterrizado."
-      ));
-    }
-  }
-
-  // ── RF-10: Pruebas funcionales ────────────────────────────────────────────────
-
-  const lightCircuits  = circuits.filter(c => c.type === "lighting");
-  const outletCircuits = circuits.filter(c => c.type === "outlet");
-
-  if (lights.length > 0 && lightCircuits.length === 0) {
-    errors.push(makeError("info", "RF-10",
-      "Luminarias sin circuito",
-      "Hay luminarias instaladas pero no pertenecen a ningún circuito de iluminación.",
-      lights.map(l => l.id),
-      "Crea un circuito de iluminación y asigna las luminarias."
-    ));
-  }
-
-  if (outlets.length > 0 && outletCircuits.length === 0) {
-    errors.push(makeError("info", "RF-10",
-      "Tomacorrientes sin circuito",
-      "Hay tomacorrientes instalados pero no pertenecen a un circuito dedicado.",
-      outlets.map(o => o.id),
-      "Crea un circuito de tomacorrientes separado del de iluminación."
-    ));
-  }
-
-  // CORRECCIÓN Bug 6: circuit.hasGround nunca se actualiza desde la UI,
-  // así que derivamos el estado real desde los cables y elementos del circuito
-  for (const circuit of outletCircuits) {
-    const hasGroundInCircuit = circuit.elementIds.some(eid => {
-      const el = elements.find(e => e.id === eid);
-      if (!el) return false;
-      return (
-        el.isGrounded ||
-        wires.some(w =>
-          (w.fromElementId === eid || w.toElementId === eid) && w.conductorType === "ground"
-        )
-      );
-    });
-
-    if (!hasGroundInCircuit) {
-      errors.push(makeError("warning", "RF-10",
-        "Polaridad/tierra incompleta",
-        `El circuito "${circuit.name}" no tiene conductor de tierra verificado en ninguno de sus elementos.`,
-        circuit.elementIds,
-        "Verifica que el cable de tierra esté conectado en todo el recorrido del circuito."
-      ));
-    }
-  }
-
-  return errors;
+function getPortMap(component: ComponentInstance): Map<string, PortTemplate> {
+  return new Map(component.ports.map((port) => [port.id, port]));
 }
 
-export function getScoreFromErrors(errors: ValidationError[]): number {
-  let score = 100;
-  for (const e of errors) {
-    if (e.severity === "error")   score -= 15;
-    if (e.severity === "warning") score -= 7;
-    if (e.severity === "info")    score -= 3;
+function addIssue(
+  issues: ValidationIssue[],
+  level: "error" | "warning",
+  message: string,
+  componentId?: string,
+  connectionId?: string,
+) {
+  issues.push({
+    id: nextIssueId(),
+    level,
+    message,
+    componentId,
+    connectionId,
+  });
+}
+
+function getPortConnections(
+  portConnections: Map<string, PortConnectionMap>,
+  compId: string,
+  portId: string,
+): Connection[] {
+  return portConnections.get(compId)?.get(portId) ?? [];
+}
+
+function recordPortConnection(
+  portConnections: Map<string, PortConnectionMap>,
+  compId: string,
+  portId: string,
+  connection: Connection,
+) {
+  if (!portConnections.has(compId)) {
+    portConnections.set(compId, new Map());
   }
-  return Math.max(0, score);
+  const portMap = portConnections.get(compId)!;
+  if (!portMap.has(portId)) {
+    portMap.set(portId, []);
+  }
+  portMap.get(portId)!.push(connection);
+}
+
+function singleConductor(connections: Connection[]): ConductorType | null {
+  if (connections.length === 0) {
+    return null;
+  }
+  const conductor = connections[0].conductor;
+  for (const conn of connections) {
+    if (conn.conductor !== conductor) {
+      return null;
+    }
+  }
+  return conductor;
+}
+
+function validateOutletNonPolarized(
+  component: ComponentInstance,
+  portConnections: Map<string, PortConnectionMap>,
+  issues: ValidationIssue[],
+) {
+  const aConductor = singleConductor(
+    getPortConnections(portConnections, component.id, "A"),
+  );
+  const bConductor = singleConductor(
+    getPortConnections(portConnections, component.id, "B"),
+  );
+
+  if (!aConductor || !bConductor) {
+    addIssue(
+      issues,
+      "error",
+      "El tomacorriente no polarizado requiere una conexion L y una N.",
+      component.id,
+    );
+    return;
+  }
+
+  if (aConductor === bConductor) {
+    addIssue(
+      issues,
+      "error",
+      "El tomacorriente no polarizado debe tener L y N en bornes distintos.",
+      component.id,
+    );
+  }
+}
+
+function validateOutletFeedThrough(
+  component: ComponentInstance,
+  portConnections: Map<string, PortConnectionMap>,
+  issues: ValidationIssue[],
+) {
+  const requiredPorts: Array<[string, ConductorType]> = [
+    ["L_IN", "L"],
+    ["L_OUT", "L"],
+    ["N_IN", "N"],
+    ["N_OUT", "N"],
+  ];
+
+  for (const [portId, conductor] of requiredPorts) {
+    const connections = getPortConnections(
+      portConnections,
+      component.id,
+      portId,
+    );
+    const portConductor = singleConductor(connections);
+    if (!portConductor) {
+      addIssue(
+        issues,
+        "error",
+        `El tomacorriente feed-through requiere ${conductor} en ${portId}.`,
+        component.id,
+      );
+      continue;
+    }
+    if (portConductor !== conductor) {
+      addIssue(
+        issues,
+        "error",
+        `Conexion invalida en ${portId}.`,
+        component.id,
+      );
+    }
+  }
+}
+
+function validateRequiredPorts(
+  component: ComponentInstance,
+  portConnections: Map<string, PortConnectionMap>,
+  issues: ValidationIssue[],
+) {
+  for (const port of component.ports) {
+    if (!port.required) {
+      continue;
+    }
+    const connections = getPortConnections(
+      portConnections,
+      component.id,
+      port.id,
+    );
+    if (connections.length === 0) {
+      addIssue(
+        issues,
+        "error",
+        `Falta conexion en el puerto ${port.label}.`,
+        component.id,
+      );
+    }
+  }
+}
+
+function validateOutlet(
+  component: ComponentInstance,
+  portConnections: Map<string, PortConnectionMap>,
+  issues: ValidationIssue[],
+) {
+  if (component.outletMode === "feedThrough") {
+    validateOutletFeedThrough(component, portConnections, issues);
+    return;
+  }
+  validateOutletNonPolarized(component, portConnections, issues);
+}
+
+export function validateHouseState(state: HouseState): ValidationIssue[] {
+  if (!hasActiveCircuits(state.circuits)) {
+    return [];
+  }
+
+  const issues: ValidationIssue[] = [];
+  const componentsById = new Map(
+    state.components.map((comp) => [comp.id, comp]),
+  );
+  const portConnections = new Map<string, PortConnectionMap>();
+
+  for (const component of state.components) {
+    if (!component.circuitId) {
+      addIssue(
+        issues,
+        "error",
+        "El componente no pertenece a ningun circuito.",
+        component.id,
+      );
+    }
+  }
+
+  for (const connection of state.connections) {
+    const fromComp = componentsById.get(connection.fromCompId);
+    const toComp = componentsById.get(connection.toCompId);
+
+    if (!fromComp || !toComp) {
+      addIssue(
+        issues,
+        "error",
+        "Conexion con componentes inexistentes.",
+        undefined,
+        connection.id,
+      );
+      continue;
+    }
+
+    const fromPort = getPortMap(fromComp).get(connection.fromPortId);
+    const toPort = getPortMap(toComp).get(connection.toPortId);
+
+    if (!fromPort || !toPort) {
+      addIssue(
+        issues,
+        "error",
+        "Conexion con puertos inexistentes.",
+        undefined,
+        connection.id,
+      );
+      continue;
+    }
+
+    if (!fromPort.conductorOptions.includes(connection.conductor)) {
+      addIssue(
+        issues,
+        "error",
+        "Conexion invalida: conductor no permitido en el puerto de origen.",
+        fromComp.id,
+        connection.id,
+      );
+    }
+
+    if (!toPort.conductorOptions.includes(connection.conductor)) {
+      addIssue(
+        issues,
+        "error",
+        "Conexion invalida: conductor no permitido en el puerto de destino.",
+        toComp.id,
+        connection.id,
+      );
+    }
+
+    if (
+      fromComp.circuitId &&
+      toComp.circuitId &&
+      fromComp.circuitId !== toComp.circuitId
+    ) {
+      addIssue(
+        issues,
+        "error",
+        "Conexion entre componentes de circuitos distintos.",
+        undefined,
+        connection.id,
+      );
+    }
+
+    if (
+      (fromComp.circuitId && fromComp.circuitId !== connection.circuitId) ||
+      (toComp.circuitId && toComp.circuitId !== connection.circuitId)
+    ) {
+      addIssue(
+        issues,
+        "error",
+        "Conexion asignada a un circuito incorrecto.",
+        undefined,
+        connection.id,
+      );
+    }
+
+    recordPortConnection(
+      portConnections,
+      fromComp.id,
+      fromPort.id,
+      connection,
+    );
+    recordPortConnection(
+      portConnections,
+      toComp.id,
+      toPort.id,
+      connection,
+    );
+  }
+
+  for (const component of state.components) {
+    validateRequiredPorts(component, portConnections, issues);
+    if (component.type === "Outlet") {
+      validateOutlet(component, portConnections, issues);
+    }
+  }
+
+  return issues;
 }

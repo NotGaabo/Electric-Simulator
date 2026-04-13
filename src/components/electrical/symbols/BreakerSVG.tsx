@@ -16,4 +16,3 @@ export function BreakerSVG({ isOn, active }: { isOn?: boolean; active?: boolean 
     </svg>
   );
 }
-

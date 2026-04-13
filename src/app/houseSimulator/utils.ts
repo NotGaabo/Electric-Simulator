@@ -1,25 +1,24 @@
-export function uid(): string {
-  return Math.random().toString(36).slice(2, 9);
+import { Circuit, OutletWiringMode, PortTemplate } from "./types";
+import {
+  OUTLET_PORTS_FEED_THROUGH,
+  OUTLET_PORTS_NON_POLARIZED,
+} from "./constants";
+
+let idSeq = 0;
+
+export function createId(prefix: string): string {
+  idSeq += 1;
+  return `${prefix}-${idSeq}`;
 }
 
-export function snap(v: number, grid: number = 20): number {
-  return Math.round(v / grid) * grid;
+export function buildOutletPorts(mode: OutletWiringMode): PortTemplate[] {
+  const base =
+    mode === "feedThrough"
+      ? OUTLET_PORTS_FEED_THROUGH
+      : OUTLET_PORTS_NON_POLARIZED;
+  return base.map((port) => ({ ...port }));
 }
 
-export function clamp(v: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, v));
-}
-
-export function lerp(a: number, b: number, t: number): number {
-  return a + (b - a) * t;
-}
-
-// Generate a smooth SVG path between two points (orthogonal routing)
-export function routePath(x1: number, y1: number, x2: number, y2: number): string {
-  const mx = (x1 + x2) / 2;
-  return `M ${x1} ${y1} C ${mx} ${y1}, ${mx} ${y2}, ${x2} ${y2}`;
-}
-
-export function dist(x1: number, y1: number, x2: number, y2: number): number {
-  return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+export function hasActiveCircuits(circuits: Circuit[]): boolean {
+  return circuits.length > 0;
 }
