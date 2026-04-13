@@ -10,6 +10,7 @@ export function SensorSimulation() {
   const {
     state,
     connectingFrom,
+    selectedNodeId,
     startSimulation,
     stopSimulation,
     resetSimulation,
@@ -18,6 +19,8 @@ export function SensorSimulation() {
     removeNode,
     toggleSensor,
     setSelectorMode,
+    setLampDuration,
+    selectNode,
     beginConnect,
     finishConnect,
     cancelConnect,
@@ -38,6 +41,7 @@ export function SensorSimulation() {
           nodes={state.nodes}
           wires={state.wires}
           connectingFrom={connectingFrom}
+          selectedNodeId={selectedNodeId}
           onAddNode={addNode}
           onMoveNode={moveNode}
           onRemoveNode={removeNode}
@@ -47,8 +51,13 @@ export function SensorSimulation() {
           onFinishConnect={finishConnect}
           onCancelConnect={cancelConnect}
           onRemoveWire={removeWire}
+          onSelectNode={selectNode}
         />
-        <StatusPanel nodes={state.nodes} />
+        <StatusPanel
+          nodes={state.nodes}
+          selectedNodeId={selectedNodeId}
+          onSetLampDuration={setLampDuration}
+        />
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ interface Props {
   nodes: AutomationNode[];
   wires: Wire[];
   connectingFrom: string | null;
+  selectedNodeId: string | null;
   onAddNode: (type: NodeType, x: number, y: number) => void;
   onMoveNode: (id: string, x: number, y: number) => void;
   onRemoveNode: (id: string) => void;
@@ -17,12 +18,14 @@ interface Props {
   onFinishConnect: (id: string) => void;
   onCancelConnect: () => void;
   onRemoveWire: (id: string) => void;
+  onSelectNode: (id: string | null) => void;
 }
 
 export function Canvas({
   nodes,
   wires,
   connectingFrom,
+  selectedNodeId,
   onAddNode,
   onMoveNode,
   onRemoveNode,
@@ -32,10 +35,9 @@ export function Canvas({
   onFinishConnect,
   onCancelConnect,
   onRemoveWire,
+  onSelectNode,
 }: Props) {
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
+  const handleDragOver = (e: React.DragEvent) => e.preventDefault();
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -47,18 +49,23 @@ export function Canvas({
     onAddNode(type, x, y);
   };
 
+  const handleCanvasClick = () => {
+    if (connectingFrom) {
+      onCancelConnect();
+    } else {
+      onSelectNode(null);
+    }
+  };
+
   return (
     <div
       className="relative flex-1 bg-gray-950 overflow-hidden"
       onDragOver={handleDragOver}
       onDrop={handleDrop}
-      onClick={connectingFrom ? onCancelConnect : undefined}
+      onClick={handleCanvasClick}
     >
-      {/* Grid background */}
-      <svg
-        className="absolute inset-0 w-full h-full opacity-10"
-        xmlns="http://www.w3.org/2000/svg"
-      >
+      {/* Grid */}
+      <svg className="absolute inset-0 w-full h-full opacity-10" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
             <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" strokeWidth="0.5" />
@@ -67,10 +74,8 @@ export function Canvas({
         <rect width="100%" height="100%" fill="url(#grid)" />
       </svg>
 
-      {/* Wires */}
       <WireLayer nodes={nodes} wires={wires} onRemoveWire={onRemoveWire} />
 
-      {/* Nodes */}
       {nodes.map((node) => (
         <DraggableNode
           key={node.id}
@@ -81,18 +86,18 @@ export function Canvas({
           onSetSelectorMode={onSetSelectorMode}
           onBeginConnect={onBeginConnect}
           onFinishConnect={onFinishConnect}
+          onSelect={onSelectNode}
           isConnecting={connectingFrom !== null && connectingFrom !== node.id}
+          isSelected={selectedNodeId === node.id}
         />
       ))}
 
-      {/* Connecting hint */}
       {connectingFrom && (
         <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-orange-500 text-black text-xs font-bold px-3 py-1 rounded-full shadow-lg z-50">
           Conectando… clic en nodo destino o en fondo para cancelar
         </div>
       )}
 
-      {/* Empty state */}
       {nodes.length === 0 && (
         <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-600 gap-2 pointer-events-none">
           <span className="text-5xl">⚡</span>

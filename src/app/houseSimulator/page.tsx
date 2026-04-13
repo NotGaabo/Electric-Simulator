@@ -1,5 +1,5 @@
-import HouseSimulator from "./HouseSimulator";
 import AssignmentSimulatorWrapper from "@/components/assignments/AssignmentSimulatorWrapper";
+import HouseSimulator from "./HouseSimulator";
 
 export default function HouseSimulatorPage() {
   return (

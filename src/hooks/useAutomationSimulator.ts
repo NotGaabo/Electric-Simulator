@@ -35,7 +35,14 @@ function createNode(type: NodeType, x: number, y: number): AutomationNode {
         remainingMs: 0,
       };
     case "lamp":
-      return { ...base, type: "lamp", active: false };
+      return {
+        ...base,
+        type: "lamp",
+        active: false,
+        onDurationMs: 0,    // 0 = sin one-shot (comportamiento normal)
+        onRemainingMs: 0,
+        prevInput: false,
+      };
     case "motor":
       return { ...base, type: "motor", active: false };
     default:
@@ -52,10 +59,11 @@ const INITIAL_STATE: AutomationState = {
 export function useAutomationSimulator() {
   const [state, setState] = useState<AutomationState>(INITIAL_STATE);
   const [connectingFrom, setConnectingFrom] = useState<string | null>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const stateRef = useRef(state);
   stateRef.current = state;
 
-  // Start/stop simulation loop
+  // Loop de simulación
   useEffect(() => {
     if (!state.running) return;
     const interval = setInterval(() => {
@@ -74,6 +82,7 @@ export function useAutomationSimulator() {
 
   const resetSimulation = useCallback(() => {
     setState(INITIAL_STATE);
+    setSelectedNodeId(null);
   }, []);
 
   const addNode = useCallback((type: NodeType, x: number, y: number) => {
@@ -96,15 +105,14 @@ export function useAutomationSimulator() {
       nodes: prev.nodes.filter((n) => n.id !== id),
       wires: prev.wires.filter((w) => w.from !== id && w.to !== id),
     }));
+    setSelectedNodeId((prev) => (prev === id ? null : prev));
   }, []);
 
   const toggleSensor = useCallback((id: string) => {
     setState((prev) => ({
       ...prev,
       nodes: prev.nodes.map((n) =>
-        n.id === id && n.type === "sensor"
-          ? { ...n, motion: !n.motion }
-          : n
+        n.id === id && n.type === "sensor" ? { ...n, motion: !n.motion } : n
       ),
     }));
   }, []);
@@ -116,6 +124,22 @@ export function useAutomationSimulator() {
         n.id === id && n.type === "selector" ? { ...n, mode } : n
       ),
     }));
+  }, []);
+
+  /** Configura el tiempo one-shot de una lámpara (en milisegundos). 0 = sin timer */
+  const setLampDuration = useCallback((id: string, durationMs: number) => {
+    setState((prev) => ({
+      ...prev,
+      nodes: prev.nodes.map((n) =>
+        n.id === id && n.type === "lamp"
+          ? { ...n, onDurationMs: Math.max(0, durationMs), onRemainingMs: 0, active: false }
+          : n
+      ),
+    }));
+  }, []);
+
+  const selectNode = useCallback((id: string | null) => {
+    setSelectedNodeId(id);
   }, []);
 
   const beginConnect = useCallback((fromId: string) => {
@@ -159,6 +183,7 @@ export function useAutomationSimulator() {
   return {
     state,
     connectingFrom,
+    selectedNodeId,
     startSimulation,
     stopSimulation,
     resetSimulation,
@@ -167,6 +192,8 @@ export function useAutomationSimulator() {
     removeNode,
     toggleSensor,
     setSelectorMode,
+    setLampDuration,
+    selectNode,
     beginConnect,
     finishConnect,
     cancelConnect,

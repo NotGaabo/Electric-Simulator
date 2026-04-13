@@ -1,6 +1,5 @@
 export type Signal = boolean;
 export type Mode = "OFF" | "MANUAL" | "AUTO";
-
 export type NodeType =
   | "sensor"
   | "selector"
@@ -41,17 +40,31 @@ export interface TimerNode extends BaseNode {
   remainingMs: number;
 }
 
-export interface LoadNode extends BaseNode {
-  type: "lamp" | "motor";
+export interface LampNode extends BaseNode {
+  type: "lamp";
+  active: Signal;
+  /** Si es > 0, la lámpara usa one-shot: se apaga sola tras onDurationMs */
+  onDurationMs: number;
+  /** Tiempo restante del one-shot en curso (0 = apagada o sin timer) */
+  onRemainingMs: number;
+  /** Señal anterior para detectar flanco de subida */
+  prevInput: Signal;
+}
+
+export interface MotorNode extends BaseNode {
+  type: "motor";
   active: Signal;
 }
+
+export type LoadNode = LampNode | MotorNode;
 
 export type AutomationNode =
   | SensorNode
   | SelectorNode
   | ContactorNode
   | TimerNode
-  | LoadNode;
+  | LampNode
+  | MotorNode;
 
 export interface Wire {
   id: string;

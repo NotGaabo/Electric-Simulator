@@ -1,7 +1,13 @@
-export const AND = (...inputs: boolean[]): boolean =>
-  inputs.length > 0 && inputs.every(Boolean);
+import { Signal } from "./types";
 
-export const OR = (...inputs: boolean[]): boolean =>
-  inputs.some(Boolean);
+export function AND(...signals: Signal[]): Signal {
+  return signals.length > 0 && signals.every(Boolean);
+}
 
-export const NOT = (input: boolean): boolean => !input;
+export function OR(...signals: Signal[]): Signal {
+  return signals.some(Boolean);
+}
+
+export function NOT(signal: Signal): Signal {
+  return !signal;
+}
