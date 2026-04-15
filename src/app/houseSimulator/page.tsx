@@ -1,10 +1,9 @@
-import AssignmentSimulatorWrapper from "@/components/assignments/AssignmentSimulatorWrapper";
-import HouseSimulator from "./HouseSimulator";
+'use client';
+
+import dynamic from 'next/dynamic';
+
+const HouseSimulator = dynamic(() => import('./HouseSimulator'), { ssr: false });
 
 export default function HouseSimulatorPage() {
-  return (
-    <AssignmentSimulatorWrapper module="house">
-      <HouseSimulator />
-    </AssignmentSimulatorWrapper>
-  );
+  return <HouseSimulator />;
 }

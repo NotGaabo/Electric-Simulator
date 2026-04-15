@@ -1,84 +1,86 @@
-export type ConductorType = "L" | "N" | "PE";
+export type ElementType =
+  | 'room'
+  | 'wall'
+  | 'door'
+  | 'window'
+  | 'ceiling_light'
+  | 'recessed'
+  | 'wall_light'
+  | 'fan'
+  | 'outlet'
+  | 'switch'
+  | 'dimmer'
+  | 'panel'
+  | 'wire_hot'
+  | 'wire_neutral'
+  | 'wire_ground'
+  | 'circuit';
 
-export type OutletWiringMode = "nonPolarized" | "feedThrough";
+export type WireType = 'wire_hot' | 'wire_neutral' | 'wire_ground' | 'circuit';
 
-export type ComponentCategory = "load" | "control" | "distribution" | "junction";
-
-export type ComponentType =
-  | "Outlet"
-  | "Switch"
-  | "LightFixture"
-  | "Panel"
-  | "JunctionBox"
-  | "Fan"
-  | "AirConditioner"
-  | "Refrigerator"
-  | "TV"
-  | "Microwave";
-
-export interface PortTemplate {
-  id: string;
-  label: string;
-  conductorOptions: ConductorType[];
-  required?: boolean;
-}
-
-export interface ComponentDefinition {
-  type: ComponentType;
-  label: string;
-  shortLabel: string;
-  category: ComponentCategory;
-  defaultPowerW?: number;
-  defaultVoltage?: number;
-  ports: PortTemplate[];
-  outletModes?: OutletWiringMode[];
-}
-
-export interface ComponentInstance {
-  id: string;
-  type: ComponentType;
+export interface Point {
   x: number;
   y: number;
-  circuitId?: string;
-  outletMode?: OutletWiringMode;
-  ports: PortTemplate[];
-  properties?: Record<string, number | string | boolean>;
 }
 
-export interface Circuit {
+export interface BaseElement {
   id: string;
-  name: string;
-  breakerOn: boolean;
-  voltage: number;
+  type: ElementType;
+  label?: string;
 }
 
-export interface Connection {
-  id: string;
-  circuitId: string;
-  fromCompId: string;
-  fromPortId: string;
-  toCompId: string;
-  toPortId: string;
-  conductor: ConductorType;
+export interface RoomElement extends BaseElement {
+  type: 'room';
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  label: string;
 }
+
+export interface PointElement extends BaseElement {
+  type: Exclude<ElementType, 'room' | 'wall' | WireType>;
+  x: number;
+  y: number;
+}
+
+export interface WireElement extends BaseElement {
+  type: WireType;
+  x1: number;
+  y1: number;
+  x2: number;
+  y2: number;
+}
+
+export type FloorElement = RoomElement | PointElement | WireElement;
 
 export interface ValidationIssue {
-  id: string;
-  level: "error" | "warning";
+  severity: 'error' | 'warning' | 'ok';
   message: string;
-  componentId?: string;
-  connectionId?: string;
 }
 
-export interface HouseState {
-  circuits: Circuit[];
-  components: ComponentInstance[];
-  connections: Connection[];
+export interface ValidationResult {
+  issues: ValidationIssue[];
+  isValid: boolean;
+  stats: {
+    rooms: number;
+    lights: number;
+    switches: number;
+    outlets: number;
+    panels: number;
+    wires: number;
+  };
 }
 
-export interface PaletteItem {
-  type: ComponentType;
-  label: string;
-  shortLabel: string;
-  category: ComponentCategory;
+export type ToolMode = 'select' | 'place';
+
+export interface ToolState {
+  mode: ToolMode;
+  activeTool: ElementType | null;
+}
+
+export interface DrawState {
+  wireStart: Point | null;
+  roomStart: Point | null;
+  mousePos: Point;
 }

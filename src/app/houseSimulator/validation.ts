@@ -1,301 +1,93 @@
-import {
-  ComponentInstance,
-  Connection,
-  ConductorType,
-  HouseState,
-  PortTemplate,
-  ValidationIssue,
-} from "./types";
-import { hasActiveCircuits } from "./utils";
+import { FloorElement, ValidationResult, ValidationIssue, WireElement, PointElement } from './types';
+import { LIGHT_TYPES, SWITCH_TYPES, WIRE_TYPES } from './constants';
+import { isWireElement, isPointElement, distance } from './utils';
 
-let issueSeq = 0;
-const nextIssueId = () => `issue-${++issueSeq}`;
+const SNAP_DISTANCE = 30;
 
-type PortConnectionMap = Map<string, Connection[]>;
-
-function getPortMap(component: ComponentInstance): Map<string, PortTemplate> {
-  return new Map(component.ports.map((port) => [port.id, port]));
-}
-
-function addIssue(
-  issues: ValidationIssue[],
-  level: "error" | "warning",
-  message: string,
-  componentId?: string,
-  connectionId?: string,
-) {
-  issues.push({
-    id: nextIssueId(),
-    level,
-    message,
-    componentId,
-    connectionId,
-  });
-}
-
-function getPortConnections(
-  portConnections: Map<string, PortConnectionMap>,
-  compId: string,
-  portId: string,
-): Connection[] {
-  return portConnections.get(compId)?.get(portId) ?? [];
-}
-
-function recordPortConnection(
-  portConnections: Map<string, PortConnectionMap>,
-  compId: string,
-  portId: string,
-  connection: Connection,
-) {
-  if (!portConnections.has(compId)) {
-    portConnections.set(compId, new Map());
-  }
-  const portMap = portConnections.get(compId)!;
-  if (!portMap.has(portId)) {
-    portMap.set(portId, []);
-  }
-  portMap.get(portId)!.push(connection);
-}
-
-function singleConductor(connections: Connection[]): ConductorType | null {
-  if (connections.length === 0) {
-    return null;
-  }
-  const conductor = connections[0].conductor;
-  for (const conn of connections) {
-    if (conn.conductor !== conductor) {
-      return null;
-    }
-  }
-  return conductor;
-}
-
-function validateOutletNonPolarized(
-  component: ComponentInstance,
-  portConnections: Map<string, PortConnectionMap>,
-  issues: ValidationIssue[],
-) {
-  const aConductor = singleConductor(
-    getPortConnections(portConnections, component.id, "A"),
+function wireEndpointNear(wire: WireElement, el: PointElement): boolean {
+  return (
+    distance({ x: wire.x1, y: wire.y1 }, { x: el.x, y: el.y }) <= SNAP_DISTANCE ||
+    distance({ x: wire.x2, y: wire.y2 }, { x: el.x, y: el.y }) <= SNAP_DISTANCE
   );
-  const bConductor = singleConductor(
-    getPortConnections(portConnections, component.id, "B"),
-  );
-
-  if (!aConductor || !bConductor) {
-    addIssue(
-      issues,
-      "error",
-      "El tomacorriente no polarizado requiere una conexion L y una N.",
-      component.id,
-    );
-    return;
-  }
-
-  if (aConductor === bConductor) {
-    addIssue(
-      issues,
-      "error",
-      "El tomacorriente no polarizado debe tener L y N en bornes distintos.",
-      component.id,
-    );
-  }
 }
 
-function validateOutletFeedThrough(
-  component: ComponentInstance,
-  portConnections: Map<string, PortConnectionMap>,
-  issues: ValidationIssue[],
-) {
-  const requiredPorts: Array<[string, ConductorType]> = [
-    ["L_IN", "L"],
-    ["L_OUT", "L"],
-    ["N_IN", "N"],
-    ["N_OUT", "N"],
-  ];
-
-  for (const [portId, conductor] of requiredPorts) {
-    const connections = getPortConnections(
-      portConnections,
-      component.id,
-      portId,
-    );
-    const portConductor = singleConductor(connections);
-    if (!portConductor) {
-      addIssue(
-        issues,
-        "error",
-        `El tomacorriente feed-through requiere ${conductor} en ${portId}.`,
-        component.id,
-      );
-      continue;
-    }
-    if (portConductor !== conductor) {
-      addIssue(
-        issues,
-        "error",
-        `Conexion invalida en ${portId}.`,
-        component.id,
-      );
-    }
-  }
-}
-
-function validateRequiredPorts(
-  component: ComponentInstance,
-  portConnections: Map<string, PortConnectionMap>,
-  issues: ValidationIssue[],
-) {
-  for (const port of component.ports) {
-    if (!port.required) {
-      continue;
-    }
-    const connections = getPortConnections(
-      portConnections,
-      component.id,
-      port.id,
-    );
-    if (connections.length === 0) {
-      addIssue(
-        issues,
-        "error",
-        `Falta conexion en el puerto ${port.label}.`,
-        component.id,
-      );
-    }
-  }
-}
-
-function validateOutlet(
-  component: ComponentInstance,
-  portConnections: Map<string, PortConnectionMap>,
-  issues: ValidationIssue[],
-) {
-  if (component.outletMode === "feedThrough") {
-    validateOutletFeedThrough(component, portConnections, issues);
-    return;
-  }
-  validateOutletNonPolarized(component, portConnections, issues);
-}
-
-export function validateHouseState(state: HouseState): ValidationIssue[] {
-  if (!hasActiveCircuits(state.circuits)) {
-    return [];
-  }
-
+export function validateCircuits(elements: FloorElement[]): ValidationResult {
   const issues: ValidationIssue[] = [];
-  const componentsById = new Map(
-    state.components.map((comp) => [comp.id, comp]),
-  );
-  const portConnections = new Map<string, PortConnectionMap>();
 
-  for (const component of state.components) {
-    if (!component.circuitId) {
-      addIssue(
-        issues,
-        "error",
-        "El componente no pertenece a ningun circuito.",
-        component.id,
-      );
+  const rooms    = elements.filter((e) => e.type === 'room');
+  const lights   = elements.filter((e) => isPointElement(e) && LIGHT_TYPES.has(e.type))   as PointElement[];
+  const switches = elements.filter((e) => isPointElement(e) && SWITCH_TYPES.has(e.type))  as PointElement[];
+  const outlets  = elements.filter((e) => isPointElement(e) && e.type === 'outlet')        as PointElement[];
+  const panels   = elements.filter((e) => isPointElement(e) && e.type === 'panel')         as PointElement[];
+  const wires    = elements.filter(isWireElement) as WireElement[];
+  const hotWires     = wires.filter((w) => w.type === 'wire_hot');
+  const groundWires  = wires.filter((w) => w.type === 'wire_ground');
+  const neutralWires = wires.filter((w) => w.type === 'wire_neutral');
+
+  const stats = {
+    rooms:    rooms.length,
+    lights:   lights.length,
+    switches: switches.length,
+    outlets:  outlets.length,
+    panels:   panels.length,
+    wires:    wires.length,
+  };
+
+  // ── Panel ──
+  if (panels.length === 0) {
+    issues.push({ severity: 'error', message: 'Sin panel de distribución. Agrega al menos uno.' });
+  } else if (panels.length > 1) {
+    issues.push({ severity: 'warning', message: `${panels.length} paneles detectados. Verifica la división de circuitos.` });
+  }
+
+  // ── Lights need switches ──
+  if (lights.length > 0 && switches.length === 0) {
+    issues.push({ severity: 'error', message: 'Luminarias sin interruptor asociado.' });
+  } else if (lights.length > switches.length * 4) {
+    issues.push({ severity: 'warning', message: 'Relación luces/interruptores alta. Verifica control por zona.' });
+  }
+
+  // ── Outlets need ground ──
+  if (outlets.length > 0 && groundWires.length === 0) {
+    issues.push({ severity: 'error', message: 'Los tomacorrientes requieren cable de tierra (verde).' });
+  }
+
+  // ── Wires need panel ──
+  if (wires.length > 0 && panels.length === 0) {
+    issues.push({ severity: 'error', message: 'Hay cables pero ningún panel los origina.' });
+  }
+
+  // ── Hot wire from panel ──
+  if (hotWires.length > 0 && panels.length > 0) {
+    const panel = panels[0] as PointElement;
+    const panelConnected = hotWires.some((w) => wireEndpointNear(w, panel));
+    if (!panelConnected) {
+      issues.push({ severity: 'warning', message: 'Ningún cable vivo parece originarse en el panel.' });
     }
   }
 
-  for (const connection of state.connections) {
-    const fromComp = componentsById.get(connection.fromCompId);
-    const toComp = componentsById.get(connection.toCompId);
-
-    if (!fromComp || !toComp) {
-      addIssue(
-        issues,
-        "error",
-        "Conexion con componentes inexistentes.",
-        undefined,
-        connection.id,
-      );
-      continue;
-    }
-
-    const fromPort = getPortMap(fromComp).get(connection.fromPortId);
-    const toPort = getPortMap(toComp).get(connection.toPortId);
-
-    if (!fromPort || !toPort) {
-      addIssue(
-        issues,
-        "error",
-        "Conexion con puertos inexistentes.",
-        undefined,
-        connection.id,
-      );
-      continue;
-    }
-
-    if (!fromPort.conductorOptions.includes(connection.conductor)) {
-      addIssue(
-        issues,
-        "error",
-        "Conexion invalida: conductor no permitido en el puerto de origen.",
-        fromComp.id,
-        connection.id,
-      );
-    }
-
-    if (!toPort.conductorOptions.includes(connection.conductor)) {
-      addIssue(
-        issues,
-        "error",
-        "Conexion invalida: conductor no permitido en el puerto de destino.",
-        toComp.id,
-        connection.id,
-      );
-    }
-
-    if (
-      fromComp.circuitId &&
-      toComp.circuitId &&
-      fromComp.circuitId !== toComp.circuitId
-    ) {
-      addIssue(
-        issues,
-        "error",
-        "Conexion entre componentes de circuitos distintos.",
-        undefined,
-        connection.id,
-      );
-    }
-
-    if (
-      (fromComp.circuitId && fromComp.circuitId !== connection.circuitId) ||
-      (toComp.circuitId && toComp.circuitId !== connection.circuitId)
-    ) {
-      addIssue(
-        issues,
-        "error",
-        "Conexion asignada a un circuito incorrecto.",
-        undefined,
-        connection.id,
-      );
-    }
-
-    recordPortConnection(
-      portConnections,
-      fromComp.id,
-      fromPort.id,
-      connection,
-    );
-    recordPortConnection(
-      portConnections,
-      toComp.id,
-      toPort.id,
-      connection,
-    );
+  // ── Neutral recommended ──
+  if (hotWires.length > 0 && neutralWires.length === 0) {
+    issues.push({ severity: 'warning', message: 'Se recomienda trazar cables neutros junto a los cables vivos.' });
   }
 
-  for (const component of state.components) {
-    validateRequiredPorts(component, portConnections, issues);
-    if (component.type === "Outlet") {
-      validateOutlet(component, portConnections, issues);
-    }
+  // ── Empty rooms ──
+  if (rooms.length > 0 && lights.length === 0) {
+    issues.push({ severity: 'warning', message: 'Habitaciones sin luminarias colocadas.' });
   }
 
-  return issues;
+  if (elements.length === 0) {
+    issues.push({ severity: 'warning', message: 'El plano está vacío. Comienza dibujando habitaciones.' });
+  }
+
+  const isValid = !issues.some((i) => i.severity === 'error');
+
+  if (isValid && issues.filter(i => i.severity !== 'ok').length === 0) {
+    issues.push({
+      severity: 'ok',
+      message: `Plano válido — ${lights.length} luces · ${outlets.length} tomas · ${switches.length} interruptores · ${wires.length} cables`,
+    });
+  }
+
+  return { issues, isValid, stats };
 }
