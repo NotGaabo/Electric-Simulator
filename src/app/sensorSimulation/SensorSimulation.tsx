@@ -19,23 +19,35 @@ export function SensorSimulation() {
     removeNode,
     toggleSensor,
     setSelectorMode,
-    setLampDuration,
+    setSensorDuration,
     selectNode,
     beginConnect,
     finishConnect,
     cancelConnect,
     removeWire,
+    insertWirePoint,
+    updateWirePoint,
   } = useAutomationSimulator();
 
   return (
-    <div className="flex flex-col h-screen bg-gray-950 text-white">
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100vh",
+        background: "#0a0f1e",
+        color: "#e2e8f0",
+        fontFamily: "'Courier New', monospace",
+        overflow: "hidden",
+      }}
+    >
       <ControlPanel
         running={state.running}
         onStart={startSimulation}
         onStop={stopSimulation}
         onReset={resetSimulation}
       />
-      <div className="flex flex-1 overflow-hidden">
+      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
         <Palette onAddNode={addNode} />
         <Canvas
           nodes={state.nodes}
@@ -51,14 +63,19 @@ export function SensorSimulation() {
           onFinishConnect={finishConnect}
           onCancelConnect={cancelConnect}
           onRemoveWire={removeWire}
+          onInsertWirePoint={insertWirePoint}
+          onUpdateWirePoint={updateWirePoint}
           onSelectNode={selectNode}
         />
         <StatusPanel
           nodes={state.nodes}
           selectedNodeId={selectedNodeId}
-          onSetLampDuration={setLampDuration}
+          onSetSensorDuration={setSensorDuration}
         />
       </div>
+      <style>{`
+        * { box-sizing: border-box; }
+      `}</style>
     </div>
   );
 }

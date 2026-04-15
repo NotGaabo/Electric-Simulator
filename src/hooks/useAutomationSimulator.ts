@@ -7,6 +7,7 @@ import {
   Wire,
   NodeType,
   Mode,
+  WirePoint,
 } from "../app/sensorSimulation/engine/types";
 import { runControlCycle } from "../app/sensorSimulation/engine/controlEngine";
 import { TICK_INTERVAL_MS, DEFAULT_TIMER_DELAY_MS } from "../app/sensorSimulation/constants";
@@ -20,7 +21,14 @@ function createNode(type: NodeType, x: number, y: number): AutomationNode {
   const base = { id: generateId(type), position: { x, y } };
   switch (type) {
     case "sensor":
-      return { ...base, type: "sensor", motion: false };
+      return {
+        ...base,
+        type: "sensor",
+        motion: false,
+        onDurationMs: 0, // 0 = sin one-shot (comportamiento normal)
+        onRemainingMs: 0,
+        prevMotion: false,
+      };
     case "selector":
       return { ...base, type: "selector", mode: "OFF" };
     case "contactor":
@@ -39,9 +47,6 @@ function createNode(type: NodeType, x: number, y: number): AutomationNode {
         ...base,
         type: "lamp",
         active: false,
-        onDurationMs: 0,    // 0 = sin one-shot (comportamiento normal)
-        onRemainingMs: 0,
-        prevInput: false,
       };
     case "motor":
       return { ...base, type: "motor", active: false };
@@ -112,7 +117,18 @@ export function useAutomationSimulator() {
     setState((prev) => ({
       ...prev,
       nodes: prev.nodes.map((n) =>
-        n.id === id && n.type === "sensor" ? { ...n, motion: !n.motion } : n
+        n.id === id && n.type === "sensor"
+          ? n.onDurationMs > 0
+            ? n.motion
+              ? { ...n, onRemainingMs: n.onDurationMs, prevMotion: true }
+              : {
+                  ...n,
+                  motion: true,
+                  onRemainingMs: n.onDurationMs,
+                  prevMotion: true,
+                }
+            : { ...n, motion: !n.motion }
+          : n
       ),
     }));
   }, []);
@@ -126,13 +142,19 @@ export function useAutomationSimulator() {
     }));
   }, []);
 
-  /** Configura el tiempo one-shot de una lámpara (en milisegundos). 0 = sin timer */
-  const setLampDuration = useCallback((id: string, durationMs: number) => {
+  /** Configura el tiempo one-shot de un sensor (en milisegundos). 0 = sin timer */
+  const setSensorDuration = useCallback((id: string, durationMs: number) => {
     setState((prev) => ({
       ...prev,
       nodes: prev.nodes.map((n) =>
-        n.id === id && n.type === "lamp"
-          ? { ...n, onDurationMs: Math.max(0, durationMs), onRemainingMs: 0, active: false }
+        n.id === id && n.type === "sensor"
+          ? {
+              ...n,
+              onDurationMs: Math.max(0, durationMs),
+              onRemainingMs: 0,
+              motion: false,
+              prevMotion: false,
+            }
           : n
       ),
     }));
@@ -180,6 +202,33 @@ export function useAutomationSimulator() {
     }));
   }, []);
 
+  const insertWirePoint = useCallback((id: string, point: WirePoint, index?: number) => {
+    setState((prev) => ({
+      ...prev,
+      wires: prev.wires.map((w) => {
+        if (w.id !== id) return w;
+        const next = [...(w.points ?? [])];
+        const insertAt =
+          typeof index === "number" ? Math.max(0, Math.min(index, next.length)) : next.length;
+        next.splice(insertAt, 0, point);
+        return { ...w, points: next };
+      }),
+    }));
+  }, []);
+
+  const updateWirePoint = useCallback((id: string, index: number, point: WirePoint) => {
+    setState((prev) => ({
+      ...prev,
+      wires: prev.wires.map((w) => {
+        if (w.id !== id) return w;
+        const next = [...(w.points ?? [])];
+        if (!next[index]) return w;
+        next[index] = point;
+        return { ...w, points: next };
+      }),
+    }));
+  }, []);
+
   return {
     state,
     connectingFrom,
@@ -192,11 +241,13 @@ export function useAutomationSimulator() {
     removeNode,
     toggleSensor,
     setSelectorMode,
-    setLampDuration,
+    setSensorDuration,
     selectNode,
     beginConnect,
     finishConnect,
     cancelConnect,
     removeWire,
+    insertWirePoint,
+    updateWirePoint,
   };
 }

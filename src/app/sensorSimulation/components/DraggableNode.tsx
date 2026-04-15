@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { AutomationNode, Mode, LampNode } from "../engine/types";
+import { AutomationNode, Mode } from "../engine/types";
+import { LuminaireSVG } from "@/components/electrical/symbols/LuminaireSVG";
 
 interface Props {
   node: AutomationNode;
@@ -45,8 +46,20 @@ function NodeIcon({ node }: { node: AutomationNode }) {
       );
     case "lamp":
       return (
-        <div className={`text-2xl transition-all ${node.active ? "drop-shadow-[0_0_8px_#fde047]" : "opacity-40"}`}>
-          💡
+        <div
+          style={{
+            width: 40,
+            height: 30,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            filter: node.active ? "drop-shadow(0 0 6px rgba(253,224,71,0.8))" : "none",
+            opacity: node.active ? 1 : 0.6,
+          }}
+        >
+          <div style={{ transform: "scale(0.55)", transformOrigin: "center" }}>
+            <LuminaireSVG active={node.active} />
+          </div>
         </div>
       );
     case "motor":
@@ -61,7 +74,23 @@ function NodeIcon({ node }: { node: AutomationNode }) {
 function NodeLabel({ node }: { node: AutomationNode }) {
   switch (node.type) {
     case "sensor":
-      return <span className={`text-[9px] font-mono ${node.motion ? "text-green-400" : "text-gray-500"}`}>{node.motion ? "MOTION" : "IDLE"}</span>;
+      return (
+        <span
+          style={{
+            fontSize: 9,
+            fontFamily: "'Courier New', monospace",
+            color: node.motion ? "#4ade80" : "#64748b",
+          }}
+        >
+          {node.motion
+            ? node.onRemainingMs > 0
+              ? `${(node.onRemainingMs / 1000).toFixed(1)}s`
+              : "ON"
+            : node.onDurationMs > 0
+            ? `T:${node.onDurationMs / 1000}s`
+            : "OFF"}
+        </span>
+      );
     case "selector":
       return <span className={`text-[9px] font-mono ${node.mode !== "OFF" ? "text-green-400" : "text-gray-500"}`}>{node.mode}</span>;
     case "contactor":
@@ -70,12 +99,14 @@ function NodeLabel({ node }: { node: AutomationNode }) {
       return <span className={`text-[9px] font-mono ${node.output ? "text-green-400" : "text-gray-500"}`}>{node.output ? "ON" : "WAIT"}</span>;
     case "lamp":
       return (
-        <span className={`text-[9px] font-mono ${node.active ? "text-yellow-300" : "text-gray-500"}`}>
-          {node.active
-            ? node.onRemainingMs > 0
-              ? `${(node.onRemainingMs / 1000).toFixed(1)}s`
-              : "ON"
-            : node.onDurationMs > 0 ? `T:${node.onDurationMs / 1000}s` : "OFF"}
+        <span
+          style={{
+            fontSize: 9,
+            fontFamily: "'Courier New', monospace",
+            color: node.active ? "#fde047" : "#64748b",
+          }}
+        >
+          {node.active ? "ON" : "OFF"}
         </span>
       );
     case "motor":
@@ -136,12 +167,11 @@ export function DraggableNode({
     // Interacciones específicas por tipo
     if (node.type === "sensor") {
       onToggleSensor(node.id);
+      onSelect(node.id);
     } else if (node.type === "selector") {
       const modes: Mode[] = ["OFF", "MANUAL", "AUTO"];
       const idx = modes.indexOf(node.mode);
       onSetSelectorMode(node.id, modes[(idx + 1) % modes.length]);
-    } else if (node.type === "lamp") {
-      onSelect(node.id);
     }
   };
 
@@ -155,22 +185,84 @@ export function DraggableNode({
 
   return (
     <div
-      className={`absolute select-none flex flex-col items-center justify-center rounded-xl border-2 w-20 h-16 gap-0.5 transition-all
-        ${isSelected ? "border-blue-400 ring-2 ring-blue-400/40" : isActive ? "border-yellow-400/70" : "border-gray-600"}
-        ${isConnecting ? "cursor-crosshair hover:border-orange-400 hover:ring-2 hover:ring-orange-400/40" : "cursor-grab"}
-        ${dragging ? "opacity-80 scale-105 z-50" : "z-10"}
-        bg-gray-800 hover:bg-gray-750 shadow-lg
-      `}
-      style={{ left: node.position.x, top: node.position.y }}
+      style={{
+        position: "absolute",
+        left: node.position.x,
+        top: node.position.y,
+        width: 80,
+        height: 60,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 2,
+        borderRadius: 10,
+        border: `2px solid ${
+          isSelected ? "#2563eb" : isActive ? "rgba(245,158,11,0.8)" : "#334155"
+        }`,
+        background: "#0f172a",
+        boxShadow: dragging
+          ? "0 10px 24px rgba(0,0,0,0.45)"
+          : "0 6px 18px rgba(0,0,0,0.35)",
+        cursor: isConnecting ? "crosshair" : "grab",
+        opacity: dragging ? 0.85 : 1,
+        transform: dragging ? "scale(1.05)" : "none",
+        zIndex: dragging ? 50 : isSelected ? 40 : 10,
+        transition: "all 0.15s",
+        userSelect: "none",
+      }}
       onMouseDown={handleMouseDown}
       onClick={handleClick}
     >
+      {isSelected && (
+        <div
+          style={{
+            position: "absolute",
+            inset: -4,
+            borderRadius: 12,
+            border: "1.5px solid #2563eb",
+            boxShadow: "0 0 0 3px rgba(37,99,235,0.25)",
+            pointerEvents: "none",
+          }}
+        />
+      )}
+
+      {isActive && (
+        <div
+          style={{
+            position: "absolute",
+            inset: -8,
+            borderRadius: 14,
+            background:
+              "radial-gradient(ellipse, rgba(74,222,128,0.12) 0%, transparent 70%)",
+            pointerEvents: "none",
+          }}
+        />
+      )}
+
       <NodeIcon node={node} />
       <NodeLabel node={node} />
 
       {/* Botón conectar */}
       <button
-        className="absolute -top-2 -right-2 w-4 h-4 bg-orange-500 hover:bg-orange-400 rounded-full text-[9px] text-white flex items-center justify-center z-20 shadow"
+        style={{
+          position: "absolute",
+          top: -10,
+          right: -10,
+          width: 18,
+          height: 18,
+          borderRadius: "50%",
+          background: "#f59e0b",
+          color: "white",
+          border: "none",
+          cursor: "pointer",
+          fontSize: 11,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 20,
+          boxShadow: "0 6px 12px rgba(0,0,0,0.4)",
+        }}
         onClick={(e) => {
           e.stopPropagation();
           onBeginConnect(node.id);
@@ -182,7 +274,24 @@ export function DraggableNode({
 
       {/* Botón eliminar */}
       <button
-        className="absolute -top-2 -left-2 w-4 h-4 bg-red-600 hover:bg-red-500 rounded-full text-[9px] text-white flex items-center justify-center z-20 shadow"
+        style={{
+          position: "absolute",
+          top: -10,
+          left: -10,
+          width: 18,
+          height: 18,
+          borderRadius: "50%",
+          background: "#ef4444",
+          color: "white",
+          border: "none",
+          cursor: "pointer",
+          fontSize: 11,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 20,
+          boxShadow: "0 6px 12px rgba(0,0,0,0.4)",
+        }}
         onClick={(e) => {
           e.stopPropagation();
           onRemove(node.id);
@@ -192,15 +301,7 @@ export function DraggableNode({
         ×
       </button>
 
-      {/* Indicador one-shot en lámpara activa */}
-      {node.type === "lamp" && node.active && node.onDurationMs > 0 && (
-        <div
-          className="absolute bottom-0 left-0 h-1 bg-yellow-400 rounded-b-xl transition-all"
-          style={{
-            width: `${Math.min(100, (node.onRemainingMs / node.onDurationMs) * 100)}%`,
-          }}
-        />
-      )}
+      {/* (Timer moved to sensor) */}
     </div>
   );
 }
