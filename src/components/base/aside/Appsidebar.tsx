@@ -11,14 +11,14 @@ interface AppSidebarProps {
   /** Assignments array used to show quick stats. Pass [] if not applicable. */
   assignments?: Assignment[]
   /** Optional active nav key. Defaults to auto-detect via pathname. */
-  activeItem?: 'dashboard' | 'clases' | 'tareas' | 'calendario' | 'calificaciones' | 'logros' | 'configuracion'
+  activeItem?: 'dashboard' | 'clases' | 'tareas' | 'calendario' | 'calificaciones' | 'estudiantes' | 'students' | 'configuracion'
 }
 
 const NAV_ITEMS = [
   {
     key: 'dashboard',
     label: 'Dashboard',
-    href: '/',
+    href: '/mis-clases',
     icon: (
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
     ),
@@ -26,7 +26,7 @@ const NAV_ITEMS = [
   {
     key: 'clases',
     label: 'Mis Clases',
-    href: '/',
+    href: '/classes',
     icon: (
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
     ),
@@ -34,7 +34,7 @@ const NAV_ITEMS = [
   {
     key: 'tareas',
     label: 'Tareas',
-    href: null, // current page
+    href: null,
     icon: (
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
     ),
@@ -53,13 +53,15 @@ const PROGRESS_ITEMS = [
   {
     key: 'calificaciones',
     label: 'Calificaciones',
+    href: null,
     icon: (
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
     ),
   },
   {
-    key: 'logros',
-    label: 'Logros',
+    key: 'students',
+    label: 'Estudiantes',
+    href: null,
     icon: (
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
     ),
@@ -69,38 +71,100 @@ const PROGRESS_ITEMS = [
 export default function AppSidebar({ assignments = [], activeItem }: AppSidebarProps) {
   const router = useRouter()
   const pathname = usePathname()
+  const classMatch = pathname.match(/^\/classes\/([^/]+)/)
+  const classId = classMatch?.[1] ?? null
+
+  const navItems = NAV_ITEMS.map((item) => {
+    if (item.key === 'tareas') {
+      return { ...item, href: classId ? `/classes/${classId}` : '/classes' }
+    }
+    if (item.key === 'calendario') {
+      return { ...item, href: classId ? `/classes/${classId}/calendario` : '/classes' }
+    }
+    return item
+  })
+
+  const progressItems = PROGRESS_ITEMS.map((item) => {
+    if (!classId) return item
+    if (item.key === 'calificaciones') {
+      return { ...item, href: `/classes/${classId}/grades` }
+    }
+    if (item.key === 'students') {
+      return { ...item, href: `/classes/${classId}/students` }
+    }
+    return item
+  })
 
   const isActive = (key: string) => {
     if (activeItem) return activeItem === key
-    // Auto-detect based on pathname
-    if (key === 'tareas' && pathname.includes('assignment')) return true
-    if (key === 'dashboard' && pathname === '/') return true
+
+    if (key === 'dashboard') {
+      return pathname === '/mis-clases'
+    }
+    if (key === 'clases') {
+      return pathname === '/classes'
+    }
+    if (key === 'tareas') {
+      return /^\/classes\/[^/]+$/.test(pathname)
+    }
+    if (key === 'calificaciones') {
+      return pathname.includes('/grades')
+    }
+    if (key === 'students') {
+      return pathname.includes('/students')
+    }
+    if (key === 'calendario') {
+      return pathname.includes('/calendar') || pathname.includes('/calendario')
+    }
+
     return false
   }
 
   return (
     <>
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500&display=swap');
+
+        :root {
+          --white: #ffffff;
+          --off-white: #f2fbf5;
+          --g50: #f0fdf4;
+          --g100: #dcfce7;
+          --g200: #bbf7d0;
+          --g300: #86efac;
+          --g400: #4ade80;
+          --g500: #22c55e;
+          --g600: #16a34a;
+          --g700: #15803d;
+          --gray-100: #f1f5f9;
+          --gray-200: #e2e8f0;
+          --gray-300: #cbd5e1;
+          --gray-400: #94a3b8;
+          --gray-500: #64748b;
+          --gray-700: #334155;
+          --gray-900: #0f172a;
+        }
 
         .app-sidebar {
           width: 240px;
-          background: #ffffff;
-          border-right: 1px solid #e2e8f0;
+          background: rgba(255,255,255,0.90);
+          backdrop-filter: blur(12px);
+          border-right: 1px solid var(--g100);
           min-height: calc(100vh - 64px);
           padding: 20px 12px;
           flex-shrink: 0;
-          font-family: 'Sora', sans-serif;
+          font-family: 'DM Sans', sans-serif;
         }
 
         .app-sidebar-section { margin-bottom: 28px; }
 
         .app-sidebar-label {
-          font-size: 0.6875rem;
-          font-weight: 600;
-          text-transform: uppercase;
-          letter-spacing: 0.1em;
-          color: #94a3b8;
+          font-family: 'Space Mono', monospace;
+          font-size: 0.65rem;
+          font-weight: 400;
+          text-transform: none;
+          letter-spacing: 0.12em;
+          color: var(--gray-400);
           padding: 0 12px;
           margin-bottom: 8px;
         }
@@ -115,29 +179,32 @@ export default function AppSidebar({ assignments = [], activeItem }: AppSidebarP
           border: none;
           background: transparent;
           cursor: pointer;
-          font-family: 'Sora', sans-serif;
           font-size: 0.8125rem;
-          font-weight: 500;
-          color: #64748b;
+          font-weight: 400;
+          color: var(--gray-500);
           transition: all 0.15s;
           text-align: left;
         }
 
         .app-sidebar-nav-item:hover {
-          background: #f1f5f9;
-          color: #334155;
+          background: var(--g50);
+          color: var(--gray-700);
         }
 
         .app-sidebar-nav-item.active {
-          background: rgba(99,102,241,0.08);
-          color: #4f46e5;
-          border: 1px solid rgba(99,102,241,0.15);
+          background: rgba(34,197,94,0.08);
+          color: var(--g600);
+          border: 1px solid rgba(34,197,94,0.18);
+        }
+
+        .app-sidebar-nav-item.active svg {
+          color: var(--g600);
         }
 
         .app-sidebar-stats {
           padding: 14px;
-          background: rgba(99,102,241,0.04);
-          border: 1px solid rgba(99,102,241,0.12);
+          background: rgba(255,255,255,0.90);
+          border: 1px solid var(--g100);
           border-radius: 12px;
           margin-top: 8px;
         }
@@ -145,7 +212,7 @@ export default function AppSidebar({ assignments = [], activeItem }: AppSidebarP
         .app-sidebar-stats-title {
           font-size: 0.7rem;
           font-weight: 700;
-          color: #6366f1;
+          color: var(--gray-500);
           text-transform: uppercase;
           letter-spacing: 0.08em;
           margin-bottom: 10px;
@@ -159,13 +226,13 @@ export default function AppSidebar({ assignments = [], activeItem }: AppSidebarP
 
         .app-sidebar-stats-label {
           font-size: 0.75rem;
-          color: #94a3b8;
+          color: var(--gray-400);
         }
 
         .app-sidebar-stats-value {
           font-size: 0.875rem;
           font-weight: 700;
-          color: #0f172a;
+          color: var(--gray-900);
         }
 
         .app-sidebar-divider {
@@ -179,9 +246,9 @@ export default function AppSidebar({ assignments = [], activeItem }: AppSidebarP
 
         {/* Principal */}
         <div className="app-sidebar-section">
-          <div className="app-sidebar-label">Principal</div>
+          <div className="app-sidebar-label">// principal</div>
 
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <button
               key={item.key}
               className={`app-sidebar-nav-item ${isActive(item.key) ? 'active' : ''}`}
@@ -197,12 +264,13 @@ export default function AppSidebar({ assignments = [], activeItem }: AppSidebarP
 
         {/* Progreso */}
         <div className="app-sidebar-section">
-          <div className="app-sidebar-label">Progreso</div>
+          <div className="app-sidebar-label">// progreso</div>
 
-          {PROGRESS_ITEMS.map((item) => (
+          {progressItems.map((item) => (
             <button
               key={item.key}
               className={`app-sidebar-nav-item ${isActive(item.key) ? 'active' : ''}`}
+              onClick={() => item.href && router.push(item.href)}
             >
               <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 {item.icon}
@@ -214,7 +282,7 @@ export default function AppSidebar({ assignments = [], activeItem }: AppSidebarP
 
         {/* Sistema */}
         <div className="app-sidebar-section">
-          <div className="app-sidebar-label">Sistema</div>
+          <div className="app-sidebar-label">// sistema</div>
           <button className={`app-sidebar-nav-item ${isActive('configuracion') ? 'active' : ''}`}>
             <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />

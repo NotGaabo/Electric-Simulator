@@ -1,7 +1,7 @@
 'use client'
 
 import { Assignment } from '@/types/assignments'
-import { formatDate } from '@/utils/dateFormat'
+import { formatDate, parseDateString } from '@/utils/dateFormat'
 import { getSimulatorModuleById } from '@/lib/simulatorModules'
 import { useRouter } from 'next/navigation'
 
@@ -38,7 +38,7 @@ const infoIconWrap: React.CSSProperties = {
 
 export default function Sidebar({ assignment }: Props) {
   const router = useRouter()
-  const isOverdue = assignment.due_date && new Date(assignment.due_date) < new Date()
+  const isOverdue = assignment.due_date && parseDateString(assignment.due_date) < new Date()
   const isSubmitted = assignment.status === 'submitted'
   const moduleInfo = getSimulatorModuleById(assignment.simulator_module)
   const isTeacher = assignment.my_role === 'teacher'

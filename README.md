@@ -1,11 +1,12 @@
-# Electric Simulator ⚡
+# Voltify ⚡
 
 An education-focused platform that combines classroom workflows (classes, assignments, comments, submissions) with a suite of interactive electrical simulators.
 
 **Description**  
-Electric Simulator provides a modern, web-based learning environment where instructors can create classes and assignments, and students can complete simulation-based tasks. It includes multiple simulator modules (circuit, house, machine, sensor, industrial office) and supports real-time collaboration features powered by Supabase.
+Voltify provides a modern, web-based learning environment where instructors can create classes and assignments, and students can complete simulation-based tasks. It includes multiple simulator modules (circuit, house, machine, sensor, industrial office) and supports real-time collaboration features powered by Supabase.
 
 **Main Features**
+
 - Classroom management: create or join classes, roles, and assignment deadlines. 🎓
 - Assignments: publish tasks, discuss via comments, and submit simulator snapshots. 📝
 - Real-time updates: live assignment and comment updates via Supabase Realtime. 🔄
@@ -17,6 +18,7 @@ Electric Simulator provides a modern, web-based learning environment where instr
 - Submission capture: assignment submissions include a simulator screenshot using html2canvas.
 
 **Tech Stack** 🧰
+
 - Next.js (App Router)
 - React
 - TypeScript
@@ -27,18 +29,22 @@ Electric Simulator provides a modern, web-based learning environment where instr
 - html2canvas
 
 **Installation & Configuration**
+
 1. Install dependencies:
+
 ```bash
 npm install
 ```
 
 2. Create `.env.local` in the project root:
+
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
 3. Supabase setup (high‑level):
+
 - Create a Supabase project.
 - Copy the project URL and anon key into `.env.local`.
 - Enable Auth providers as needed.
@@ -46,22 +52,26 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 **Usage**
 Run the development server:
+
 ```bash
 npm run dev
 ```
 
 Open the app in your browser:
+
 ```
 http://localhost:3000
 ```
 
 Typical flow:
+
 - Register or log in.
 - Open the dashboard and create/join a class.
 - Create assignments and open simulator modules to complete tasks.
 - Submit assignment snapshots directly from the simulator view.
 
 **Scripts**
+
 ```bash
 npm run dev
 npm run build
@@ -72,6 +82,7 @@ npm run test:watch
 ```
 
 **Folder Structure**
+
 ```
 public/
 src/

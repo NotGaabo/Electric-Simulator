@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import AppHeader from '@/components/base/header/appHeader'
-import AppSidebar from '@/components/base/aside/Appsidebar'
+import AppSidebar from '@/components/base/aside/AppSidebar'
 
 export default function ClassLayout({
   children,
@@ -35,12 +35,12 @@ export default function ClassLayout({
         {/* Sidebar */}
 <aside
   className={`
-    fixed top-16 left-0 z-[45] h-[calc(100vh-64px)] transition-transform duration-300
+    fixed top-16 left-0 z-45 h-[calc(100vh-64px)] transition-transform duration-300
     lg:sticky lg:top-16 lg:h-[calc(100vh-64px)] lg:translate-x-0 lg:self-start lg:overflow-y-auto
     ${showSidebar ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
   `}
 >
-          <AppSidebar activeItem="tareas" />
+          <AppSidebar />
         </aside>
 
         {/* Page content */}
