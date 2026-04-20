@@ -64,7 +64,7 @@ export default function ClassCalendarPage() {
       const isToday = getDayKey(cellDate) === getDayKey(today)
       const dueList = assignmentsByDay.get(dateKey) ?? []
 
-      return { day, month, year, dateKey, other, isToday, dueCount: dueList.length }
+      return { day, month, year, dateKey, other, isToday, dueCount: dueList.length, assignments: dueList }
     })
   }, [assignmentsByDay, current, today])
 
@@ -315,8 +315,8 @@ export default function ClassCalendarPage() {
                     onClick={() => setSelectedDay(cell.dateKey)}
                   >
                     <div className={`cal-day-number ${cell.isToday ? 'today' : ''}`}>{cell.day}</div>
-                    {cell.dueCount > 0 && (
-                      <span className="cal-badge">{cell.dueCount} tarea{cell.dueCount > 1 ? 's' : ''}</span>
+                    {cell.assignments.length > 0 && (
+                      <span className="cal-badge" title={cell.assignments.map(a => a.title).join(', ')}>📌 {cell.assignments[0].title}</span>
                     )}
                   </button>
                 ))}
