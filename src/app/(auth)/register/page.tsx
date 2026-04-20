@@ -21,7 +21,7 @@ export default function SignUpPage() {
 
   const testimonials = [
     {
-      quote: "Electricity.sim has saved us thousands of hours. We spin up circuit prototypes faster and ship better products.",
+      quote: "Voltify has saved us thousands of hours. We spin up circuit prototypes faster and ship better products.",
       author: "Henley Shepherd",
       role: "Product Manager, Hourglass",
       company: "Web Design Agency",
@@ -48,14 +48,14 @@ export default function SignUpPage() {
     try {
       const { data, error: signUpError } = await supabase.auth.signUp({
         email, password,
-        options: { emailRedirectTo: `${location.origin}/dashboard`, data: { full_name: fullName } },
+        options: { emailRedirectTo: `${location.origin}/mis-clases`, data: { full_name: fullName } },
       });
       if (signUpError) throw signUpError;
       if (data.user) {
         if (data.user.identities && data.user.identities.length === 0) {
           setError('This email is already registered. Please log in instead.'); return;
         }
-        router.push('/dashboard');
+        router.push('/mis-clases');
       }
     } catch (err: any) {
       setError(err.message || 'An error occurred during sign up');
@@ -67,7 +67,7 @@ export default function SignUpPage() {
   const handleGoogleSignup = async () => {
     setIsLoading(true); setError('');
     try {
-      const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${location.origin}/dashboard` } });
+      const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${location.origin}/mis-clases` } });
       if (error) throw error;
     } catch (err: any) { setError(err.message); setIsLoading(false); }
   };
@@ -75,7 +75,7 @@ export default function SignUpPage() {
   const handleFacebookSignup = async () => {
     setIsLoading(true); setError('');
     try {
-      const { error } = await supabase.auth.signInWithOAuth({ provider: 'facebook', options: { redirectTo: `${location.origin}/dashboard` } });
+      const { error } = await supabase.auth.signInWithOAuth({ provider: 'facebook', options: { redirectTo: `${location.origin}/mis-clases` } });
       if (error) throw error;
     } catch (err: any) { setError(err.message); setIsLoading(false); }
   };
@@ -83,7 +83,7 @@ export default function SignUpPage() {
   const handleAppleSignup = async () => {
     setIsLoading(true); setError('');
     try {
-      const { error } = await supabase.auth.signInWithOAuth({ provider: 'apple', options: { redirectTo: `${location.origin}/dashboard` } });
+      const { error } = await supabase.auth.signInWithOAuth({ provider: 'apple', options: { redirectTo: `${location.origin}/mis-clases` } });
       if (error) throw error;
     } catch (err: any) { setError(err.message); setIsLoading(false); }
   };
@@ -377,7 +377,7 @@ export default function SignUpPage() {
                   <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
                 </svg>
               </div>
-              <span className="logo-text">Electricity<span>.</span>sim</span>
+              <span className="logo-text">Voltify<span>.</span></span>
             </a>
 
             {/* ── STEP 1 ── */}

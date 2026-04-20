@@ -2,12 +2,20 @@
 
 import { AssignmentSubmission } from '@/types/assignments'
 import { formatDate } from '@/utils/dateFormat'
+import SubmissionViewer from './SubmissionViewer'
+import { useState } from 'react'
 
 interface Props {
   submissions: AssignmentSubmission[]
+  assignmentId: string
+  totalPoints?: number | null
+  onGradeSubmit?: (submission_id: string, assignment_id: string, score: number, feedback: string) => Promise<void>
+  isTeacher?: boolean
 }
 
-export default function SubmissionsPanel({ submissions }: Props) {
+export default function SubmissionsPanel({ submissions, assignmentId, totalPoints, onGradeSubmit, isTeacher = false }: Props) {
+  const [selectedSubmission, setSelectedSubmission] = useState<AssignmentSubmission | null>(null)
+
   return (
     <div id="entregas" style={{
       background: 'rgba(255,255,255,0.92)',
@@ -108,29 +116,48 @@ export default function SubmissionsPanel({ submissions }: Props) {
 
                 {/* Action */}
                 {submission.screenshot_url && (
-                  <a
-                    href={submission.screenshot_url}
-                    target="_blank"
-                    rel="noreferrer"
+                  <button
+                    onClick={() => setSelectedSubmission(submission)}
                     style={{
                       padding: '6px 12px',
                       background: 'linear-gradient(135deg, #22c55e, #15803d)',
                       border: 'none', borderRadius: 100,
                       fontFamily: "'Space Mono', monospace",
                       fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.06em',
-                      color: '#fff', textDecoration: 'none', cursor: 'pointer',
+                      color: '#fff', cursor: 'pointer',
                       boxShadow: '0 2px 8px rgba(22,163,74,0.25)',
                       flexShrink: 0,
+                      transition: 'all 0.2s',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(22,163,74,0.35)'
+                      e.currentTarget.style.transform = 'translateY(-1px)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(22,163,74,0.25)'
+                      e.currentTarget.style.transform = 'translateY(0)'
                     }}
                   >
                     Ver →
-                  </a>
+                  </button>
                 )}
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* Submission Viewer Modal */}
+      {selectedSubmission && (
+        <SubmissionViewer
+          submission={selectedSubmission}
+          assignmentId={assignmentId}
+          totalPoints={totalPoints}
+          isTeacher={isTeacher}
+          onClose={() => setSelectedSubmission(null)}
+          onGradeSubmit={onGradeSubmit}
+        />
+      )}
     </div>
   )
 }

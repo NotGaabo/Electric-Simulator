@@ -8,7 +8,7 @@ export default function HomePage() {
 
   const handleGoToPanel = async () => {
     const { data: { user } } = await supabase.auth.getUser()
-    if (user) { router.push('/dashboard') } else { router.push('/login') }
+    if (user) { router.push('/mis-clases') } else { router.push('/login') }
   }
 
   return (
@@ -99,18 +99,18 @@ export default function HomePage() {
               <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
             </svg>
           </div>
-          <span className="logo-text">Electricity<span>.</span>sim</span>
+          <span className="logo-text">Voltify<span>.</span></span>
         </a>
-        <button onClick={handleGoToPanel} className="nav-btn">Open Simulator →</button>
+        <button onClick={handleGoToPanel} className="nav-btn">Open Voltify →</button>
       </header>
 
       <main>
         <section className="hero">
           <div className="badge"><span className="badge-dot" />AI-powered · Circuit Simulation</div>
-          <h1 className="hero-title">Simulate circuits<br /><strong>intelligently.</strong></h1>
-          <p className="hero-sub">An advanced LLM-driven electrical simulator. Design, analyze, and understand circuits through natural language and real-time interaction.</p>
+          <h1 className="hero-title">Simulate circuits<br /><strong>with Voltify.</strong></h1>
+          <p className="hero-sub">An advanced AI-powered electrical simulator. Design, analyze, and understand circuits through natural language and real-time interaction.</p>
           <div className="hero-actions">
-            <button onClick={handleGoToPanel} className="btn-primary">Launch Simulator</button>
+            <button onClick={handleGoToPanel} className="btn-primary">Launch Voltify</button>
             <button className="btn-secondary">View Documentation</button>
           </div>
           <div className="circuit-visual">
@@ -184,12 +184,12 @@ export default function HomePage() {
         <section className="cta-section">
           <h2 className="cta-title">Start simulating<br /><strong>right now.</strong></h2>
           <p className="cta-sub">No installation required. Open the simulator and build your first circuit in under a minute.</p>
-          <button onClick={handleGoToPanel} className="btn-primary" style={{fontSize:'16px',padding:'16px 44px'}}>Launch Electricity Simulator</button>
+          <button onClick={handleGoToPanel} className="btn-primary" style={{fontSize:'16px',padding:'16px 44px'}}>Launch Voltify Simulator</button>
         </section>
       </main>
 
       <footer>
-        <span className="footer-text">© 2026 Electricity Simulator. All rights reserved.</span>
+        <span className="footer-text">© 2026 Voltify. All rights reserved.</span>
         <span className="footer-mono">v2.0 · SPICE Engine</span>
       </footer>
     </>

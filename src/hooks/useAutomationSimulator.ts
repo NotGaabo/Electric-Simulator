@@ -7,6 +7,7 @@ import {
   Wire,
   NodeType,
   Mode,
+  WirePoint,
 } from "../app/sensorSimulation/engine/types";
 import { runControlCycle } from "../app/sensorSimulation/engine/controlEngine";
 import { TICK_INTERVAL_MS, DEFAULT_TIMER_DELAY_MS } from "../app/sensorSimulation/constants";
@@ -20,7 +21,14 @@ function createNode(type: NodeType, x: number, y: number): AutomationNode {
   const base = { id: generateId(type), position: { x, y } };
   switch (type) {
     case "sensor":
-      return { ...base, type: "sensor", motion: false };
+      return {
+        ...base,
+        type: "sensor",
+        motion: false,
+        onDurationMs: 0, // 0 = sin one-shot (comportamiento normal)
+        onRemainingMs: 0,
+        prevMotion: false,
+      };
     case "selector":
       return { ...base, type: "selector", mode: "OFF" };
     case "contactor":
@@ -35,7 +43,11 @@ function createNode(type: NodeType, x: number, y: number): AutomationNode {
         remainingMs: 0,
       };
     case "lamp":
-      return { ...base, type: "lamp", active: false };
+      return {
+        ...base,
+        type: "lamp",
+        active: false,
+      };
     case "motor":
       return { ...base, type: "motor", active: false };
     default:
@@ -52,10 +64,11 @@ const INITIAL_STATE: AutomationState = {
 export function useAutomationSimulator() {
   const [state, setState] = useState<AutomationState>(INITIAL_STATE);
   const [connectingFrom, setConnectingFrom] = useState<string | null>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const stateRef = useRef(state);
   stateRef.current = state;
 
-  // Start/stop simulation loop
+  // Loop de simulación
   useEffect(() => {
     if (!state.running) return;
     const interval = setInterval(() => {
@@ -74,6 +87,7 @@ export function useAutomationSimulator() {
 
   const resetSimulation = useCallback(() => {
     setState(INITIAL_STATE);
+    setSelectedNodeId(null);
   }, []);
 
   const addNode = useCallback((type: NodeType, x: number, y: number) => {
@@ -96,6 +110,7 @@ export function useAutomationSimulator() {
       nodes: prev.nodes.filter((n) => n.id !== id),
       wires: prev.wires.filter((w) => w.from !== id && w.to !== id),
     }));
+    setSelectedNodeId((prev) => (prev === id ? null : prev));
   }, []);
 
   const toggleSensor = useCallback((id: string) => {
@@ -103,7 +118,16 @@ export function useAutomationSimulator() {
       ...prev,
       nodes: prev.nodes.map((n) =>
         n.id === id && n.type === "sensor"
-          ? { ...n, motion: !n.motion }
+          ? n.onDurationMs > 0
+            ? n.motion
+              ? { ...n, onRemainingMs: n.onDurationMs, prevMotion: true }
+              : {
+                  ...n,
+                  motion: true,
+                  onRemainingMs: n.onDurationMs,
+                  prevMotion: true,
+                }
+            : { ...n, motion: !n.motion }
           : n
       ),
     }));
@@ -116,6 +140,28 @@ export function useAutomationSimulator() {
         n.id === id && n.type === "selector" ? { ...n, mode } : n
       ),
     }));
+  }, []);
+
+  /** Configura el tiempo one-shot de un sensor (en milisegundos). 0 = sin timer */
+  const setSensorDuration = useCallback((id: string, durationMs: number) => {
+    setState((prev) => ({
+      ...prev,
+      nodes: prev.nodes.map((n) =>
+        n.id === id && n.type === "sensor"
+          ? {
+              ...n,
+              onDurationMs: Math.max(0, durationMs),
+              onRemainingMs: 0,
+              motion: false,
+              prevMotion: false,
+            }
+          : n
+      ),
+    }));
+  }, []);
+
+  const selectNode = useCallback((id: string | null) => {
+    setSelectedNodeId(id);
   }, []);
 
   const beginConnect = useCallback((fromId: string) => {
@@ -156,9 +202,37 @@ export function useAutomationSimulator() {
     }));
   }, []);
 
+  const insertWirePoint = useCallback((id: string, point: WirePoint, index?: number) => {
+    setState((prev) => ({
+      ...prev,
+      wires: prev.wires.map((w) => {
+        if (w.id !== id) return w;
+        const next = [...(w.points ?? [])];
+        const insertAt =
+          typeof index === "number" ? Math.max(0, Math.min(index, next.length)) : next.length;
+        next.splice(insertAt, 0, point);
+        return { ...w, points: next };
+      }),
+    }));
+  }, []);
+
+  const updateWirePoint = useCallback((id: string, index: number, point: WirePoint) => {
+    setState((prev) => ({
+      ...prev,
+      wires: prev.wires.map((w) => {
+        if (w.id !== id) return w;
+        const next = [...(w.points ?? [])];
+        if (!next[index]) return w;
+        next[index] = point;
+        return { ...w, points: next };
+      }),
+    }));
+  }, []);
+
   return {
     state,
     connectingFrom,
+    selectedNodeId,
     startSimulation,
     stopSimulation,
     resetSimulation,
@@ -167,9 +241,13 @@ export function useAutomationSimulator() {
     removeNode,
     toggleSensor,
     setSelectorMode,
+    setSensorDuration,
+    selectNode,
     beginConnect,
     finishConnect,
     cancelConnect,
     removeWire,
+    insertWirePoint,
+    updateWirePoint,
   };
 }

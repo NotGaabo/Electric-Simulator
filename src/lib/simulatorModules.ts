@@ -1,4 +1,4 @@
-export type SimulatorModuleId = 'circuit' | 'house' | 'machine' | 'sensor'
+export type SimulatorModuleId = 'circuit' | 'house' | 'machine' | 'sensor' | 'industrialoffice'
 
 export interface SimulatorModule {
   id: SimulatorModuleId
@@ -10,7 +10,8 @@ export const SIMULATOR_MODULES: SimulatorModule[] = [
   { id: 'circuit', label: 'Simulador de Circuitos', route: '/circuitSimulator' },
   { id: 'house', label: 'Simulador de Casa', route: '/houseSimulator' },
   { id: 'machine', label: 'Simulador de Máquinas', route: '/machineSimulator' },
-  { id: 'sensor', label: 'Simulador de Sensores', route: '/sensorSimulation' }
+  { id: 'industrialoffice', label: 'Simulador de Oficina Industrial', route: '/IndustrialOffices' },
+  { id: 'sensor', label: 'Simulador de Sensores', route: '/sensorSimulation' },
 ]
 
 export const getSimulatorModuleById = (id?: string | null) =>

@@ -25,13 +25,13 @@ export default function LoginPage() {
       return
     }
 
-    router.push('/dashboard')
+    router.push('/mis-clases')
   }
 
   const handleGoogleLogin = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/dashboard` },
+      options: { redirectTo: `${window.location.origin}/mis-clases` },
     })
     if (error) alert(error.message)
   }
@@ -432,7 +432,7 @@ export default function LoginPage() {
                   <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
                 </svg>
               </div>
-              <span className="logo-text">Electricity<span>.</span>sim</span>
+              <span className="logo-text">Voltify<span>.</span></span>
             </a>
 
             <h1 className="form-title">Welcome <strong>back</strong></h1>
@@ -512,7 +512,7 @@ export default function LoginPage() {
             </div>
 
             <blockquote className="right-quote">
-              "Electricity.sim has saved us thousands of hours. We spin up circuit prototypes faster and ship better products."
+              "Voltify has saved us thousands of hours. We spin up circuit prototypes faster and ship better products."
             </blockquote>
 
             <div className="right-footer">

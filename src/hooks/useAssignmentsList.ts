@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Assignment, AssignmentRole } from '@/types/assignments'
+import { parseDateString } from '@/utils/dateFormat'
 
 export function useAssignmentsList() {
   const params = useParams()
@@ -95,9 +96,9 @@ export function useAssignmentsList() {
   }
 
   const formatDate = (d: string) =>
-    new Date(d).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })
+    parseDateString(d).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })
 
-  const isOverdue = (d: string) => new Date(d) < new Date()
+  const isOverdue = (d: string) => parseDateString(d) < new Date()
 
   return {
     classId,

@@ -1,5 +1,7 @@
 "use client";
 
+import type { CSSProperties } from "react";
+
 interface Props {
   running: boolean;
   onStart: () => void;
@@ -8,41 +10,125 @@ interface Props {
 }
 
 export function ControlPanel({ running, onStart, onStop, onReset }: Props) {
+  const baseBtn: CSSProperties = {
+    border: "1px solid #1e293b",
+    background: "transparent",
+    color: "#94a3b8",
+    fontSize: 10,
+    letterSpacing: "0.08em",
+    padding: "6px 10px",
+    borderRadius: 6,
+    cursor: "pointer",
+    transition: "all 0.15s",
+    fontFamily: "'Courier New', monospace",
+  };
+
   return (
-    <div className="bg-gray-900 border-b border-gray-700 px-4 py-2 flex items-center gap-3">
-      <h1 className="text-white font-bold text-sm mr-4 shrink-0">
-        ⚡ Automation Simulator
-      </h1>
+    <div
+      style={{
+        background: "#060d1a",
+        borderBottom: "1px solid #1e293b",
+        padding: "8px 12px",
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+      }}
+    >
+      <div style={{ marginRight: 8 }}>
+        <div
+          style={{
+            fontSize: 10,
+            color: "#4ade80",
+            letterSpacing: "0.15em",
+            marginBottom: 2,
+          }}
+        >
+          ⚡ AUTOMATION SIMULATOR
+        </div>
+        <div style={{ fontSize: 8, color: "#58677b" }}>
+          IEC 60617 · Control &amp; lógica
+        </div>
+      </div>
 
       <button
         onClick={onStart}
         disabled={running}
-        className="px-3 py-1 bg-green-600 hover:bg-green-500 disabled:opacity-40 text-white text-xs font-bold rounded"
+        style={{
+          ...baseBtn,
+          opacity: running ? 0.4 : 1,
+          borderColor: running ? "#1e293b" : "#14532d",
+          color: running ? "#64748b" : "#4ade80",
+        }}
+        onMouseEnter={(e) => {
+          if (running) return;
+          e.currentTarget.style.borderColor = "#4ade80";
+          e.currentTarget.style.color = "#4ade80";
+        }}
+        onMouseLeave={(e) => {
+          if (running) return;
+          e.currentTarget.style.borderColor = "#14532d";
+          e.currentTarget.style.color = "#4ade80";
+        }}
       >
-        ▶ Iniciar
+        ▶ INICIAR
       </button>
 
       <button
         onClick={onStop}
         disabled={!running}
-        className="px-3 py-1 bg-red-600 hover:bg-red-500 disabled:opacity-40 text-white text-xs font-bold rounded"
+        style={{
+          ...baseBtn,
+          opacity: running ? 1 : 0.4,
+          borderColor: running ? "#7f1d1d" : "#1e293b",
+          color: running ? "#f87171" : "#64748b",
+        }}
+        onMouseEnter={(e) => {
+          if (!running) return;
+          e.currentTarget.style.borderColor = "#f87171";
+          e.currentTarget.style.color = "#f87171";
+        }}
+        onMouseLeave={(e) => {
+          if (!running) return;
+          e.currentTarget.style.borderColor = "#7f1d1d";
+          e.currentTarget.style.color = "#f87171";
+        }}
       >
-        ■ Detener
+        ■ DETENER
       </button>
 
       <button
         onClick={onReset}
-        className="px-3 py-1 bg-gray-600 hover:bg-gray-500 text-white text-xs font-bold rounded"
+        style={baseBtn}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = "#94a3b8";
+          e.currentTarget.style.color = "#e2e8f0";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = "#1e293b";
+          e.currentTarget.style.color = "#94a3b8";
+        }}
       >
-        ↺ Reset
+        ↺ RESET
       </button>
 
       <div
-        className={`ml-2 h-2.5 w-2.5 rounded-full ${
-          running ? "bg-green-400 animate-pulse" : "bg-gray-600"
-        }`}
+        style={{
+          marginLeft: 8,
+          width: 8,
+          height: 8,
+          borderRadius: "50%",
+          background: running ? "#4ade80" : "#334155",
+          boxShadow: running ? "0 0 6px rgba(74,222,128,0.8)" : "none",
+          animation: running ? "blink 1s infinite" : "none",
+        }}
       />
-      <span className="text-xs text-gray-400">{running ? "RUNNING" : "STOPPED"}</span>
+      <span style={{ fontSize: 10, color: "#64748b" }}>
+        {running ? "RUNNING" : "STOPPED"}
+      </span>
+
+      <style>{`
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+      `}</style>
     </div>
   );
 }

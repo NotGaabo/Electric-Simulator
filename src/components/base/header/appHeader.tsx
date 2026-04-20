@@ -26,17 +26,31 @@ export default function AppHeader({ onMenuToggle, showMenuButton = true }: AppHe
   return (
     <>
       <style jsx global>{`
-        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+        :root {
+          --g50:  #f0fdf4;
+          --g100: #e0fce8;
+          --g200: #c1f9d1;
+          --g300: #87f5aa;
+          --g400: #4ade80;
+          --g500: #22c55e;
+          --g600: #16a34a;
+          --g700: #15803d;
+          --gray-400: #cbd5e1;
+          --gray-500: #64748b;
+          --gray-700: #334155;
+        }
 
         .app-header {
           background: #ffffff;
-          border-bottom: 1px solid #e2e8f0;
+          border-bottom: 1px solid var(--g100);
           position: sticky;
           top: 0;
           z-index: 50;
           height: 64px;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-          font-family: 'Sora', sans-serif;
+          box-shadow: 0 1px 3px rgba(34,197,94,0.06);
+          font-family: 'DM Sans', sans-serif;
         }
 
         .app-header-inner {
@@ -52,12 +66,12 @@ export default function AppHeader({ onMenuToggle, showMenuButton = true }: AppHe
         .app-header-logo-icon {
           width: 38px;
           height: 38px;
-          background: linear-gradient(135deg, #6366f1 0%, #06b6d4 100%);
+          background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
           border-radius: 10px;
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 0 20px rgba(99,102,241,0.2);
+          box-shadow: 0 0 20px rgba(34,197,94,0.2);
           flex-shrink: 0;
         }
 
@@ -65,32 +79,35 @@ export default function AppHeader({ onMenuToggle, showMenuButton = true }: AppHe
           font-size: 1.1rem;
           font-weight: 700;
           letter-spacing: -0.02em;
-          color: #0f172a;
+          color: #1e293b;
+          font-family: 'DM Sans', sans-serif;
         }
 
-        .app-header-logo-text span { color: #6366f1; }
+        .app-header-logo-text span { color: var(--g600); }
 
         .app-header-search {
           display: flex;
           align-items: center;
           gap: 8px;
           padding: 8px 16px;
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
+          background: var(--g50);
+          border: 1px solid var(--g100);
           border-radius: 10px;
-          color: #94a3b8;
+          color: var(--gray-500);
           font-size: 0.8rem;
           cursor: pointer;
           user-select: none;
+          font-family: 'DM Sans', sans-serif;
         }
 
         .app-header-search-kbd {
-          color: #94a3b8;
+          color: var(--gray-500);
           font-size: 0.7rem;
-          background: #f1f5f9;
+          background: #f8fafc;
           padding: 2px 6px;
           border-radius: 5px;
-          border: 1px solid #e2e8f0;
+          border: 1px solid var(--g100);
+          font-family: 'Space Mono', monospace;
         }
 
         .app-header-btn-primary {
@@ -98,7 +115,7 @@ export default function AppHeader({ onMenuToggle, showMenuButton = true }: AppHe
           align-items: center;
           gap: 8px;
           padding: 8px 16px;
-          background: linear-gradient(135deg, #6366f1, #06b6d4);
+          background: linear-gradient(135deg, #22c55e, #16a34a);
           color: #fff;
           font-weight: 600;
           font-size: 0.8125rem;
@@ -106,14 +123,14 @@ export default function AppHeader({ onMenuToggle, showMenuButton = true }: AppHe
           border: none;
           cursor: pointer;
           transition: all 0.2s;
-          font-family: 'Sora', sans-serif;
+          font-family: 'DM Sans', sans-serif;
           letter-spacing: 0.01em;
-          box-shadow: 0 2px 12px rgba(99,102,241,0.25);
+          box-shadow: 0 2px 12px rgba(34,197,94,0.25);
         }
 
         .app-header-btn-primary:hover {
-          background: linear-gradient(135deg, #4f46e5, #0891b2);
-          box-shadow: 0 4px 20px rgba(99,102,241,0.35);
+          background: linear-gradient(135deg, #16a34a, #15803d);
+          box-shadow: 0 4px 20px rgba(34,197,94,0.35);
           transform: translateY(-1px);
         }
 
@@ -149,15 +166,15 @@ export default function AppHeader({ onMenuToggle, showMenuButton = true }: AppHe
           background: transparent;
           border: none;
           cursor: pointer;
-          font-family: 'Sora', sans-serif;
+          font-family: 'DM Sans', sans-serif;
           font-size: 0.8125rem;
           font-weight: 500;
-          color: #475569;
+          color: var(--gray-500);
           transition: all 0.15s;
           text-align: left;
         }
 
-        .app-header-dropdown-item:hover { background: #f1f5f9; color: #1e293b; }
+        .app-header-dropdown-item:hover { background: var(--g50); color: var(--gray-700); }
 
         .app-header-dropdown-icon {
           width: 32px;
@@ -169,14 +186,14 @@ export default function AppHeader({ onMenuToggle, showMenuButton = true }: AppHe
           flex-shrink: 0;
         }
 
-        .app-header-dropdown-divider { height: 1px; background: #f1f5f9; margin: 4px 0; }
+        .app-header-dropdown-divider { height: 1px; background: var(--g50); margin: 4px 0; }
 
         .app-header-avatar {
           width: 36px;
           height: 36px;
           border-radius: 50%;
-          background: linear-gradient(135deg, #312e81, #4338ca);
-          border: 2px solid rgba(99,102,241,0.2);
+          background: linear-gradient(135deg, #22c55e, #16a34a);
+          border: 2px solid rgba(34,197,94,0.2);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -184,16 +201,17 @@ export default function AppHeader({ onMenuToggle, showMenuButton = true }: AppHe
           font-weight: 700;
           color: #ffffff;
           letter-spacing: 0.05em;
+          font-family: 'Space Mono', monospace;
         }
 
         .app-header-menu-btn {
           display: none;
           padding: 8px;
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
+          background: var(--g50);
+          border: 1px solid var(--g100);
           border-radius: 8px;
           cursor: pointer;
-          color: #64748b;
+          color: var(--gray-500);
           align-items: center;
           justify-content: center;
         }
@@ -225,10 +243,10 @@ export default function AppHeader({ onMenuToggle, showMenuButton = true }: AppHe
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div className="app-header-logo-icon">
                 <svg width="20" height="20" fill="none" stroke="white" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
-              <div className="app-header-logo-text">Auli<span>fy</span></div>
+              <div className="app-header-logo-text">Volti<span>fy</span></div>
             </div>
           </div>
 

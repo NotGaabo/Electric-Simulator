@@ -14,6 +14,7 @@ import { AmmeterSVG }     from "@/components/electrical/symbols/Ammetersvg";
 export type SVGCompType =
   | "source"
   | "transformer"
+  | "led"
   | "motor"
   | "breaker"
   | "voltmeter"

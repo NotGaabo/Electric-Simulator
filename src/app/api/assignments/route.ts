@@ -56,24 +56,41 @@ export async function GET(request: NextRequest) {
     const assignmentIds = assignments.map(a => a.id)
 
     let submittedSet = new Set<string>()
+    let gradesMap = new Map<string, number>()
 
     const { data: submissions, error: submissionsError } = await supabase
       .from('assignment_submissions')
-      .select('assignment_id')
+      .select('id, assignment_id')
       .eq('student_id', user.id)
       .in('assignment_id', assignmentIds)
 
     if (submissionsError) {
       console.error('Error fetching submissions:', submissionsError)
-    } else {
-      submittedSet = new Set(submissions?.map(s => s.assignment_id))
+    } else if (submissions) {
+      submissions.forEach(s => submittedSet.add(s.assignment_id))
+      
+      // Obtener calificaciones de las entregas del estudiante
+      const submissionIds = submissions.map(s => s.id)
+      const { data: grades, error: gradesError } = await supabase
+        .from('assignment_submissions_grades')
+        .select('submission_id, assignment_id, score')
+        .in('submission_id', submissionIds)
+
+      if (gradesError) {
+        console.error('Error fetching grades:', gradesError)
+      } else if (grades) {
+        grades.forEach(g => {
+          gradesMap.set(g.assignment_id, g.score)
+        })
+      }
     }
 
     const normalized = assignments.map((assignment) => ({
       ...assignment,
       status: submittedSet.has(assignment.id)
         ? 'submitted'
-        : 'not_submitted'
+        : 'not_submitted',
+      score: gradesMap.get(assignment.id) || null
     }))
 
     return NextResponse.json(normalized)
@@ -95,7 +112,8 @@ export async function POST(request: NextRequest) {
       title,
       description,
       due_date,
-      simulator_module
+      simulator_module,
+      points
     } = await request.json()
 
     if (!title || title.trim().length === 0) {
@@ -155,7 +173,8 @@ export async function POST(request: NextRequest) {
           title: title.trim(),
           description: description?.trim() || null,
           due_date: due_date || null,
-          simulator_module
+          simulator_module,
+          points: typeof points === 'number' && points >= 0 ? points : null
         }
       ])
       .select()

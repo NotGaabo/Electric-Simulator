@@ -1,6 +1,5 @@
 export type Signal = boolean;
 export type Mode = "OFF" | "MANUAL" | "AUTO";
-
 export type NodeType =
   | "sensor"
   | "selector"
@@ -20,6 +19,12 @@ export interface BaseNode {
 export interface SensorNode extends BaseNode {
   type: "sensor";
   motion: Signal;
+  /** Si es > 0, el sensor emite pulso one-shot: se apaga solo tras onDurationMs */
+  onDurationMs: number;
+  /** Tiempo restante del one-shot en curso (0 = apagado o sin timer) */
+  onRemainingMs: number;
+  /** Señal anterior para detectar flanco de subida */
+  prevMotion: Signal;
 }
 
 export interface SelectorNode extends BaseNode {
@@ -41,22 +46,36 @@ export interface TimerNode extends BaseNode {
   remainingMs: number;
 }
 
-export interface LoadNode extends BaseNode {
-  type: "lamp" | "motor";
+export interface LampNode extends BaseNode {
+  type: "lamp";
   active: Signal;
 }
+
+export interface MotorNode extends BaseNode {
+  type: "motor";
+  active: Signal;
+}
+
+export type LoadNode = LampNode | MotorNode;
 
 export type AutomationNode =
   | SensorNode
   | SelectorNode
   | ContactorNode
   | TimerNode
-  | LoadNode;
+  | LampNode
+  | MotorNode;
+
+export interface WirePoint {
+  x: number;
+  y: number;
+}
 
 export interface Wire {
   id: string;
   from: string;
   to: string;
+  points?: WirePoint[];
 }
 
 export interface AutomationState {
