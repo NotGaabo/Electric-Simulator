@@ -95,7 +95,8 @@ export async function POST(request: NextRequest) {
       title,
       description,
       due_date,
-      simulator_module
+      simulator_module,
+      points
     } = await request.json()
 
     if (!title || title.trim().length === 0) {
@@ -155,7 +156,8 @@ export async function POST(request: NextRequest) {
           title: title.trim(),
           description: description?.trim() || null,
           due_date: due_date || null,
-          simulator_module
+          simulator_module,
+          points: typeof points === 'number' && points >= 0 ? points : null
         }
       ])
       .select()

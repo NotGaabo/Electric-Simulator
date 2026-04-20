@@ -11,6 +11,10 @@ export interface AssignmentSubmission {
   screenshot_path: string
   screenshot_url?: string | null
   submitted_at: string
+  score?: number | null
+  feedback?: string | null
+  graded_at?: string | null
+  graded_by?: string | null
 }
 
 export interface Assignment {
