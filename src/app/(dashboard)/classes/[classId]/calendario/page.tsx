@@ -345,7 +345,7 @@ export default function ClassCalendarPage() {
                         <div className="cal-task-meta">
                           {moduleInfo && <span className="cal-task-chip">{moduleInfo.label}</span>}
                           <span>{assignment.description || 'Sin descripción'}</span>
-                          {isOverdue(assignment.due_date) && <span className="cal-task-chip">vencida</span>}
+                          {assignment.due_date && isOverdue(assignment.due_date) && <span className="cal-task-chip">vencida</span>}
                         </div>
                       </div>
                     )

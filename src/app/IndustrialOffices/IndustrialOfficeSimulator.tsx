@@ -1,4 +1,4 @@
-﻿// @ts-nocheck
+﻿// Archivo con simulador de oficinas industriales
 "use client";
 
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
@@ -487,7 +487,7 @@ const CAT_COLOR: Record<string, string> = {
 // ─────────────────────────────────────────────────────────────────────────────
 //  STATS
 // ─────────────────────────────────────────────────────────────────────────────
-function computeStats(elements: any[]) {
+function computeStats(elements: Array<Record<string, unknown>>) {
   const cats = Object.keys(CAT_COLOR);
   const result: Record<string, number> = {};
   cats.forEach(c => { result[c] = 0; });
@@ -502,8 +502,8 @@ function computeStats(elements: any[]) {
 //  MAIN APP
 // ─────────────────────────────────────────────────────────────────────────────
 export default function OfficePlanner() {
-  const [elements,     setElements]     = useState<any[]>([]);
-  const [wires,        setWires]        = useState<any[]>([]);
+  const [elements,     setElements]     = useState<Array<Record<string, unknown>>>([]);
+  const [wires,        setWires]        = useState<Array<Record<string, unknown>>>([]);
   const [selectedId,   setSelectedId]   = useState<string|null>(null);
   const [activeTool,   setActiveTool]   = useState<ElemType|null>(null);
   const [wireStart,    setWireStart]    = useState<{x:number;y:number}|null>(null);
@@ -568,10 +568,10 @@ export default function OfficePlanner() {
     if (!rect) return;
     const rx = (e.clientX - rect.left - panOffset.x) / zoom;
     const ry = (e.clientY - rect.top  - panOffset.y) / zoom;
-    const x = snap(rx - (def.w || 20)/2);
-    const y = snap(ry - (def.h || 20)/2);
+    const x = snap(rx - ((def as any).w || 20)/2);
+    const y = snap(ry - ((def as any).h || 20)/2);
 
-    const newEl = { id: uid(), type, x, y, w: def.w||20, h: def.h||20, label: def.label, rotation: 0 };
+    const newEl = { id: uid(), type, x, y, w: (def as any).w||20, h: (def as any).h||20, label: def.label, rotation: 0 };
     setElements(p => [...p, newEl]);
     setSelectedId(newEl.id);
   }, [zoom, panOffset]);
@@ -618,8 +618,8 @@ export default function OfficePlanner() {
     if (!def) return;
     const newEl = {
       id: uid(), type: activeTool,
-      x: p.x - (def.w||20)/2, y: p.y - (def.h||20)/2,
-      w: def.w||20, h: def.h||20,
+      x: p.x - ((def as any).w||20)/2, y: p.y - ((def as any).h||20)/2,
+      w: (def as any).w||20, h: (def as any).h||20,
       label: def.label, rotation: 0,
     };
     setElements(p2 => [...p2, newEl]);
@@ -637,7 +637,7 @@ export default function OfficePlanner() {
     const el = elements.find(x => x.id === id);
     if (!el) return;
     const sx = e.clientX, sy = e.clientY;
-    const ox = el.x, oy = el.y;
+    const ox = el.x as number, oy = el.y as number;
     const mv = (me: MouseEvent) => {
       const dx = (me.clientX - sx) / zoom;
       const dy = (me.clientY - sy) / zoom;
@@ -694,7 +694,7 @@ export default function OfficePlanner() {
   // ── Rotation ──
   const rotate = useCallback((id: string, delta: number) => {
     setElements(prev => prev.map(x => x.id === id
-      ? { ...x, rotation: ((x.rotation || 0) + delta + 360) % 360 }
+      ? { ...x, rotation: (((x as any).rotation || 0) + delta + 360) % 360 }
       : x
     ));
   }, []);
@@ -878,7 +878,7 @@ export default function OfficePlanner() {
                       {isWire
                         ? <div style={{width:22,height:2,background:def.color,borderRadius:1}}/>
                         : <div style={{transform:"scale(0.4)",transformOrigin:"center",pointerEvents:"none",lineHeight:0}}>
-                            <ElemSVG type={type as ElemType} w={def.w||20} h={def.h||20}/>
+                            <ElemSVG type={type as ElemType} w={(def as any).w||20} h={(def as any).h||20}/>
                           </div>
                       }
                     </div>
@@ -1019,21 +1019,21 @@ export default function OfficePlanner() {
               {elements.filter(el => el.type === "room").map(el => {
                 const isSel = selectedId === el.id;
                 return (
-                  <g key={el.id} data-elid={el.id}
-                    transform={`rotate(${el.rotation||0},${el.x+el.w/2},${el.y+el.h/2})`}
+                  <g key={el.id as string} data-elid={el.id as string}
+                    transform={`rotate(${(el as any).rotation||0},${(el as any).x+(el as any).w/2},${(el as any).y+(el as any).h/2})`}
                     style={{cursor:"move"}}
-                    onMouseDown={e=>startDrag(el.id,e)}>
-                    <rect x={el.x} y={el.y} width={el.w} height={el.h}
+                    onMouseDown={e=>startDrag(el.id as string,e)}>
+                    <rect x={(el as any).x} y={(el as any).y} width={(el as any).w} height={(el as any).h}
                       fill={isSel?"rgba(59,130,246,0.07)":"rgba(20,30,50,0.45)"}
                       stroke={isSel?"#3b82f6":"#1e3a5f"}
                       strokeWidth={isSel?2:1.5} rx={3}/>
-                    <text x={el.x+el.w/2} y={el.y+el.h/2}
+                    <text x={(el as any).x+(el as any).w/2} y={(el as any).y+(el as any).h/2}
                       textAnchor="middle" dominantBaseline="central"
                       fontSize={12} fill={isSel?"#3b82f6":"#2a4a70"} fontFamily="monospace">
-                      {el.label}
+                      {(el as any).label}
                     </text>
                     {isSel && (
-                      <rect x={el.x-3} y={el.y-3} width={el.w+6} height={el.h+6}
+                      <rect x={(el as any).x-3} y={(el as any).y-3} width={(el as any).w+6} height={(el as any).h+6}
                         fill="none" stroke="#3b82f6" strokeWidth={1} strokeDasharray="4,3"
                         rx={4} opacity={0.5} filter="url(#selGlow)"/>
                     )}
@@ -1043,22 +1043,22 @@ export default function OfficePlanner() {
 
               {/* Wires */}
               {wires.map(w => {
-                const def = CATALOGUE[w.type as ElemType] as any;
+                const def = CATALOGUE[(w as any).type as ElemType] as any;
                 const col = def?.color ?? "#94a3b8";
-                const isSel = selectedId === w.id;
-                const d = cablePath(w.x1,w.y1,w.x2,w.y2);
+                const isSel = selectedId === (w as any).id;
+                const d = cablePath((w as any).x1,(w as any).y1,(w as any).x2,(w as any).y2);
                 return (
-                  <g key={w.id} data-elid={w.id}>
+                  <g key={(w as any).id as string} data-elid={(w as any).id as string}>
                     {isSel && <path d={d} fill="none" stroke={col} strokeWidth={8} opacity={0.15} filter="url(#wireGlow)"/>}
                     <path d={d} fill="none" stroke={col} strokeWidth={isSel?2.5:1.8} strokeLinecap="round"
-                      markerEnd={w.type==="wire_data"?"url(#arrowData)":undefined} filter="url(#wireGlow)"
+                      markerEnd={(w as any).type==="wire_data"?"url(#arrowData)":undefined} filter="url(#wireGlow)"
                       style={{cursor:"pointer"}}/>
-                    <circle cx={w.x1} cy={w.y1} r={3} fill={col} opacity={0.7}/>
-                    <circle cx={w.x2} cy={w.y2} r={3} fill={col} opacity={0.7}/>
+                    <circle cx={(w as any).x1} cy={(w as any).y1} r={3} fill={col} opacity={0.7}/>
+                    <circle cx={(w as any).x2} cy={(w as any).y2} r={3} fill={col} opacity={0.7}/>
                     {/* Invisible hit target */}
                     <path d={d} fill="none" stroke="transparent" strokeWidth={14}
                       style={{cursor:"pointer"}}
-                      onClick={e=>{e.stopPropagation();setSelectedId(w.id);}}/>
+                      onClick={e=>{e.stopPropagation();setSelectedId((w as any).id as string);}}/>
                   </g>
                 );
               })}
@@ -1066,44 +1066,44 @@ export default function OfficePlanner() {
               {/* All non-room elements */}
               {elements.filter(el => el.type !== "room").map(el => {
                 const isSel = selectedId === el.id;
-                const cx2 = el.x + el.w/2, cy2 = el.y + el.h/2;
+                const cx2 = (el as any).x + (el as any).w/2, cy2 = (el as any).y + (el as any).h/2;
                 return (
-                  <g key={el.id} data-elid={el.id}
-                    transform={`rotate(${el.rotation||0},${cx2},${cy2})`}
+                  <g key={el.id as string} data-elid={el.id as string}
+                    transform={`rotate(${(el as any).rotation||0},${cx2},${cy2})`}
                     style={{cursor: activeTool ? "crosshair" : "move"}}
-                    onMouseDown={e => startDrag(el.id, e)}>
+                    onMouseDown={e => startDrag(el.id as string, e)}>
                     {isSel && (
-                      <rect x={el.x-5} y={el.y-5} width={el.w+10} height={el.h+10}
+                      <rect x={(el as any).x-5} y={(el as any).y-5} width={(el as any).w+10} height={(el as any).h+10}
                         fill="none" stroke="#22d3ee" strokeWidth={1.5}
                         rx={4} opacity={0.4} filter="url(#selGlow)"/>
                     )}
-                    <g transform={`translate(${el.x},${el.y})`}>
-                      <ElemSVG type={el.type} w={el.w} h={el.h} selected={isSel}/>
+                    <g transform={`translate(${(el as any).x},${(el as any).y})`}>
+                      <ElemSVG type={(el as any).type} w={(el as any).w} h={(el as any).h} selected={isSel}/>
                     </g>
                     {/* Label below */}
-                    <text x={cx2} y={el.y+el.h+9}
+                    <text x={cx2} y={(el as any).y+(el as any).h+9}
                       textAnchor="middle" fontSize={7} fill="#2a4a70"
                       fontFamily="monospace" style={{pointerEvents:"none"}}>
-                      {el.label}
+                      {(el as any).label}
                     </text>
                     {/* Rotation handles when selected */}
                     {isSel && (
                       <g>
-                        <rect x={cx2-28} y={el.y-22} width={56} height={18} rx={9}
+                        <rect x={cx2-28} y={(el as any).y-22} width={56} height={18} rx={9}
                           fill="rgba(2,9,20,0.95)" stroke="#22d3ee44" strokeWidth={1}/>
-                        <text x={cx2-10} y={el.y-10} textAnchor="middle"
+                        <text x={cx2-10} y={(el as any).y-10} textAnchor="middle"
                           fontSize={9} fill="#22d3ee" style={{cursor:"pointer"}}
-                          onClick={e=>{e.stopPropagation();rotate(el.id,-90);}}>↺</text>
-                        <text x={cx2} y={el.y-10} textAnchor="middle"
+                          onClick={e=>{e.stopPropagation();rotate(el.id as string,-90);}}>↺</text>
+                        <text x={cx2} y={(el as any).y-10} textAnchor="middle"
                           fontSize={8} fill="#22d3ee44">|</text>
-                        <text x={cx2+10} y={el.y-10} textAnchor="middle"
+                        <text x={cx2+10} y={(el as any).y-10} textAnchor="middle"
                           fontSize={9} fill="#22d3ee" style={{cursor:"pointer"}}
-                          onClick={e=>{e.stopPropagation();rotate(el.id,+90);}}>↻</text>
+                          onClick={e=>{e.stopPropagation();rotate(el.id as string,+90);}}>↻</text>
                         {/* Delete X */}
-                        <circle cx={el.x+el.w+6} cy={el.y-6} r={7} fill="#ef4444"
+                        <circle cx={(el as any).x+(el as any).w+6} cy={(el as any).y-6} r={7} fill="#ef4444"
                           style={{cursor:"pointer"}}
-                          onClick={e=>{e.stopPropagation();deleteEl(el.id);}}/>
-                        <text x={el.x+el.w+6} y={el.y-2} textAnchor="middle"
+                          onClick={e=>{e.stopPropagation();deleteEl(el.id as string);}}/>
+                        <text x={(el as any).x+(el as any).w+6} y={(el as any).y-2} textAnchor="middle"
                           fontSize={9} fill="white" style={{cursor:"pointer",pointerEvents:"none"}}>×</text>
                       </g>
                     )}
@@ -1173,19 +1173,19 @@ export default function OfficePlanner() {
             </div>
             {/* Type badge */}
             <div style={{
-              fontSize:9,color:CAT_COLOR[CATALOGUE[selEl.type as ElemType]?.cat||"Estructura"]||"#3b82f6",
+              fontSize:9,color:CAT_COLOR[CATALOGUE[(selEl as any).type as ElemType]?.cat||"Estructura"]||"#3b82f6",
               background:"rgba(59,130,246,0.08)",border:"1px solid rgba(59,130,246,0.2)",
               padding:"3px 8px",borderRadius:4,display:"inline-block",marginBottom:10,
             }}>
-              {selEl.type.toUpperCase().replace(/_/g," ")}
+              {(selEl as any).type.toUpperCase().replace(/_/g," ")}
             </div>
 
             {/* Label */}
             <div style={{marginBottom:12}}>
               <div style={{fontSize:8,color:"#1e3654",marginBottom:3}}>Etiqueta</div>
               <input
-                value={selEl.label || ""}
-                onChange={e => setElements(prev => prev.map(x => x.id===selEl.id ? {...x,label:e.target.value} : x))}
+                value={(selEl as any).label || ""}
+                onChange={e => setElements(prev => prev.map(x => x.id===(selEl as any).id ? {...x,label:e.target.value} : x))}
                 style={{
                   width:"100%",background:"#040d1e",
                   border:"1px solid #0f2040",borderRadius:4,
@@ -1204,8 +1204,8 @@ export default function OfficePlanner() {
                     <div style={{fontSize:7.5,color:"#2a4a70",marginBottom:2}}>{axis.toUpperCase()}</div>
                     <input
                       type="number"
-                      value={selEl[axis]}
-                      onChange={e => setElements(prev => prev.map(x => x.id===selEl.id ? {...x,[axis]:snap(+e.target.value)} : x))}
+                      value={(selEl as any)[axis]}
+                      onChange={e => setElements(prev => prev.map(x => x.id===(selEl as any).id ? {...x,[axis]:snap(+e.target.value)} : x))}
                       style={{
                         width:"100%",background:"#040d1e",
                         border:"1px solid #0f2040",borderRadius:4,
@@ -1228,8 +1228,8 @@ export default function OfficePlanner() {
                       <div style={{fontSize:7.5,color:"#2a4a70",marginBottom:2}}>{axis==="w"?"Ancho":"Alto"}</div>
                       <input
                         type="number"
-                        value={selEl[axis]}
-                        onChange={e => setElements(prev => prev.map(x => x.id===selEl.id ? {...x,[axis]:snap(+e.target.value)} : x))}
+                        value={(selEl as any)[axis]}
+                        onChange={e => setElements(prev => prev.map(x => x.id===(selEl as any).id ? {...x,[axis]:snap(+e.target.value)} : x))}
                         style={{
                           width:"100%",background:"#040d1e",
                           border:"1px solid #0f2040",borderRadius:4,
@@ -1247,25 +1247,25 @@ export default function OfficePlanner() {
             <div style={{marginBottom:12}}>
               <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
                 <span style={{fontSize:8,color:"#1e3654"}}>Rotación</span>
-                <span style={{fontSize:10,color:"#22d3ee",fontWeight:700}}>{selEl.rotation||0}°</span>
+                <span style={{fontSize:10,color:"#22d3ee",fontWeight:700}}>{(selEl as any).rotation||0}°</span>
               </div>
-              <input type="range" min={0} max={270} step={90} value={selEl.rotation||0}
-                onChange={e => setElements(prev => prev.map(x => x.id===selEl.id ? {...x,rotation:+e.target.value} : x))}/>
+              <input type="range" min={0} max={270} step={90} value={(selEl as any).rotation||0}
+                onChange={e => setElements(prev => prev.map(x => x.id===(selEl as any).id ? {...x,rotation:+e.target.value} : x))}/>
               <div style={{display:"flex",justifyContent:"space-between",marginTop:6,gap:4}}>
                 {[0,90,180,270].map(deg=>(
                   <button key={deg}
-                    onClick={()=>setElements(prev=>prev.map(x=>x.id===selEl.id?{...x,rotation:deg}:x))}
+                    onClick={()=>setElements(prev=>prev.map(x=>x.id===(selEl as any).id?{...x,rotation:deg}:x))}
                     style={{
                       flex:1,padding:"4px 0",fontSize:8,border:"1px solid",cursor:"pointer",borderRadius:5,
-                      borderColor:(selEl.rotation||0)===deg?"#22d3ee":"#0f2040",
-                      background:(selEl.rotation||0)===deg?"rgba(34,211,238,0.1)":"transparent",
-                      color:(selEl.rotation||0)===deg?"#22d3ee":"#2a4a70",
+                      borderColor:((selEl as any).rotation||0)===deg?"#22d3ee":"#0f2040",
+                      background:((selEl as any).rotation||0)===deg?"rgba(34,211,238,0.1)":"transparent",
+                      color:((selEl as any).rotation||0)===deg?"#22d3ee":"#2a4a70",
                     }}>{deg}°</button>
                 ))}
               </div>
             </div>
 
-            <button onClick={()=>deleteEl(selEl.id)} style={{
+            <button onClick={()=>deleteEl((selEl as any).id)} style={{
               width:"100%",padding:"8px",background:"rgba(239,68,68,0.08)",
               border:"1px solid rgba(239,68,68,0.3)",color:"#f87171",
               borderRadius:7,fontSize:11,cursor:"pointer",fontFamily:"inherit",
