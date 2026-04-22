@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { useAssignmentsList } from '@/hooks/useAssignmentsList'
+import { useAllAssignments } from '@/hooks/useAllAssignments'
 import { getSimulatorModuleById } from '@/lib/simulatorModules'
 import { formatDate, parseDateString } from '@/utils/dateFormat'
 
@@ -15,15 +15,35 @@ const DAYS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 const pad = (value: number) => String(value).padStart(2, '0')
 const getDayKey = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 
-export default function ClassCalendarPage() {
-  const { assignments, classId, router, loading, error, isOverdue } = useAssignmentsList()
+export default function GlobalCalendarPage() {
+  const { assignments, loading, error, router, isOverdue } = useAllAssignments()
   const today = new Date()
   const [current, setCurrent] = useState({ year: today.getFullYear(), month: today.getMonth() })
   const [selectedDay, setSelectedDay] = useState(getDayKey(today))
+  const [filterClass, setFilterClass] = useState<string | null>(null)
+
+  // Obtener clases únicas
+  const uniqueClasses = useMemo(() => {
+    const classMap = new Map()
+    assignments.forEach((a) => {
+      if (!classMap.has(a.class_id)) {
+        classMap.set(a.class_id, {
+          id: a.class_id,
+          name: a.class_name,
+          palette: a.class_palette,
+        })
+      }
+    })
+    return Array.from(classMap.values())
+  }, [assignments])
 
   const assignmentsByDay = useMemo(() => {
     const map = new Map<string, typeof assignments>()
-    assignments.forEach((assignment) => {
+    const filtered = filterClass
+      ? assignments.filter((a) => a.class_id === filterClass)
+      : assignments
+
+    filtered.forEach((assignment) => {
       if (!assignment.due_date) return
       const dueDate = parseDateString(assignment.due_date)
       const key = getDayKey(dueDate)
@@ -31,7 +51,7 @@ export default function ClassCalendarPage() {
       map.set(key, [...list, assignment])
     })
     return map
-  }, [assignments])
+  }, [assignments, filterClass])
 
   const monthCells = useMemo(() => {
     const firstDay = new Date(current.year, current.month, 1).getDay()
@@ -177,6 +197,37 @@ export default function ClassCalendarPage() {
         .cal-nav button:hover { background: #ecfdf5; }
         .cal-nav .cal-today { background: linear-gradient(135deg, #22c55e, #16a34a); color: white; }
 
+        .cal-filters {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          padding: 16px;
+          background: #f8fafc;
+          border-radius: 16px;
+          margin-bottom: 16px;
+        }
+
+        .filter-btn {
+          padding: 8px 14px;
+          border-radius: 999px;
+          border: 1px solid #dcfce7;
+          background: #ffffff;
+          color: #0f172a;
+          cursor: pointer;
+          font-size: 0.85rem;
+          font-family: 'DM Sans', sans-serif;
+          transition: all 0.2s ease;
+        }
+
+        .filter-btn:hover { background: #f0fdf4; }
+
+        .filter-btn.active {
+          border-color: #16a34a;
+          background: #22c55e;
+          color: #ffffff;
+          font-weight: 600;
+        }
+
         .cal-grid {
           display: grid;
           grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -266,12 +317,39 @@ export default function ClassCalendarPage() {
           border: 1px solid #dcfce7;
           box-shadow: 0 8px 24px rgba(34,197,94,0.06);
           cursor: pointer;
-          transition: transform 0.2s ease, border-color 0.2s ease;
+          transition: transform 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+          border-left: 5px solid #22c55e;
         }
-        .cal-task-card:hover { transform: translateY(-1px); border-color: #86efac; }
+        .cal-task-card:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(34,197,94,0.12); }
+        .cal-task-card.class-0 { border-left-color: #4ade80; }
+        .cal-task-card.class-0:hover { background-color: rgba(74,222,128,0.04); }
+        .cal-task-card.class-1 { border-left-color: #34d399; }
+        .cal-task-card.class-1:hover { background-color: rgba(52,211,153,0.04); }
+        .cal-task-card.class-2 { border-left-color: #2dd4bf; }
+        .cal-task-card.class-2:hover { background-color: rgba(45,212,191,0.04); }
+        .cal-task-card.class-3 { border-left-color: #86efac; }
+        .cal-task-card.class-3:hover { background-color: rgba(134,239,172,0.04); }
+        .cal-task-card.class-4 { border-left-color: #bbf7d0; }
+        .cal-task-card.class-4:hover { background-color: rgba(187,247,208,0.04); }
+        .cal-task-card.class-5 { border-left-color: #5eead4; }
+        .cal-task-card.class-5:hover { background-color: rgba(94,234,212,0.04); }
+        .cal-task-card.class-6 { border-left-color: #dcfce7; }
+        .cal-task-card.class-6:hover { background-color: rgba(220,252,231,0.08); }
+        .cal-task-card.class-7 { border-left-color: #6ee7b7; }
+        .cal-task-card.class-7:hover { background-color: rgba(110,231,183,0.04); }
+        .cal-task-card.class-8 { border-left-color: #4ade80; }
+        .cal-task-card.class-8:hover { background-color: rgba(74,222,128,0.04); }
+        .cal-task-card.class-9 { border-left-color: #67e8f9; }
+        .cal-task-card.class-9:hover { background-color: rgba(103,232,249,0.04); }
+        .cal-task-card.class-10 { border-left-color: #a7f3d0; }
+        .cal-task-card.class-10:hover { background-color: rgba(167,243,208,0.04); }
+        .cal-task-card.class-11 { border-left-color: #6ee7b7; }
+        .cal-task-card.class-11:hover { background-color: rgba(110,231,183,0.04); }
+
         .cal-task-title { margin: 0 0 8px; font-size: 1rem; font-weight: 600; }
         .cal-task-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 0.84rem; color: #475569; }
         .cal-task-chip { padding: 6px 10px; border-radius: 999px; background: rgba(34,197,94,0.08); color: #166534; font-family: 'Space Mono', monospace; }
+        .cal-task-class { padding: 6px 10px; border-radius: 999px; background: rgba(34,197,94,0.12); color: #165534; font-family: 'Space Mono', monospace; font-weight: 600; }
 
         .cal-empty {
           padding: 28px 24px;
@@ -286,14 +364,36 @@ export default function ClassCalendarPage() {
         <div className="cal-inner">
           <div className="cal-top">
             <div>
-              <p className="cal-subtitle">Calendario de entregas de la clase. Cada día muestra las tareas que vencen en esa fecha.</p>
-              <h1 className="cal-title">Calendario de <strong>entregas</strong></h1>
+              <p className="cal-subtitle">Calendario de todas tus entregas. Visualiza las tareas de todas tus clases por fecha.</p>
+              <h1 className="cal-title">Calendario <strong>global de entregas</strong></h1>
             </div>
             <div className="cal-nav">
               <button onClick={prevMonth}>‹ Mes anterior</button>
               <button className="cal-today" onClick={goToday}>Hoy</button>
               <button onClick={nextMonth}>Mes siguiente ›</button>
             </div>
+          </div>
+
+          {/* Filtros por clase */}
+          <div className="cal-filters">
+            <button
+              className={`filter-btn ${filterClass === null ? 'active' : ''}`}
+              onClick={() => setFilterClass(null)}
+            >
+              Todas las clases
+            </button>
+            {uniqueClasses.map((classItem) => (
+              <button
+                key={classItem.id}
+                className={`filter-btn ${filterClass === classItem.id ? 'active' : ''}`}
+                onClick={() => setFilterClass(classItem.id)}
+                style={{
+                  borderColor: filterClass === classItem.id ? classItem.palette.accent : '#dcfce7',
+                }}
+              >
+                {classItem.name}
+              </button>
+            ))}
           </div>
 
           <div className="cal-panel">
@@ -333,19 +433,25 @@ export default function ClassCalendarPage() {
                 <div className="cal-empty">No hay tareas programadas para esta fecha.</div>
               ) : (
                 <div className="cal-task-list">
-                  {selectedAssignments.map((assignment) => {
+                  {selectedAssignments.map((assignment, idx) => {
                     const moduleInfo = getSimulatorModuleById(assignment.simulator_module)
+                    const paletteIndex = Math.abs(
+                      assignment.class_id.split('').reduce((a, c) => ((a << 5) - a + c.charCodeAt(0)) | 0, 0)
+                    ) % 12
                     return (
                       <div
                         key={assignment.id}
-                        className="cal-task-card"
-                        onClick={() => router.push(`/classes/${classId}/assignment/${assignment.id}`)}
+                        className={`cal-task-card class-${paletteIndex}`}
+                        onClick={() => router.push(`/classes/${assignment.class_id}/assignment/${assignment.id}`)}
                       >
                         <h3 className="cal-task-title">{assignment.title}</h3>
                         <div className="cal-task-meta">
+                          <span className="cal-task-class" style={{ backgroundColor: `${assignment.class_palette.accent}30` }}>
+                            {assignment.class_name}
+                          </span>
                           {moduleInfo && <span className="cal-task-chip">{moduleInfo.label}</span>}
                           <span>{assignment.description || 'Sin descripción'}</span>
-                          {assignment.due_date && isOverdue(assignment.due_date) && <span className="cal-task-chip">vencida</span>}
+                          {isOverdue(assignment.due_date) && <span className="cal-task-chip">vencida</span>}
                         </div>
                       </div>
                     )

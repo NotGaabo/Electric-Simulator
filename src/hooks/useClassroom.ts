@@ -5,6 +5,7 @@ interface ClassItem {
   id: string
   name: string
   description: string | null
+  code?: string
   created_at: string
   class_members?: Array<{
     role: string

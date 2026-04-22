@@ -23,6 +23,7 @@ export async function GET(
         id,
         name,
         description,
+        code,
         created_at,
         class_members!inner (
           role,

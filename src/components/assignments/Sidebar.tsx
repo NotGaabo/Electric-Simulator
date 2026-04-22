@@ -165,23 +165,32 @@ export default function Sidebar({ assignment }: Props) {
               {/* CTA button */}
               {moduleUrl ? (
                 <button
-                  onClick={() => router.push(moduleUrl)}
+                  onClick={() => !isSubmitted && router.push(moduleUrl)}
+                  disabled={isSubmitted}
                   style={{
                     width: '100%', padding: '11px 16px',
-                    background: 'linear-gradient(135deg, #22c55e, #15803d)',
-                    border: 'none', borderRadius: 100,
+                    background: isSubmitted 
+                      ? '#f0fdf4'
+                      : 'linear-gradient(135deg, #22c55e, #15803d)',
+                    border: isSubmitted 
+                      ? '1px solid #dcfce7'
+                      : 'none', 
+                    borderRadius: 100,
                     fontFamily: "'DM Sans', sans-serif",
                     fontSize: '0.8125rem', fontWeight: 500,
-                    color: '#fff', cursor: 'pointer',
-                    boxShadow: '0 4px 14px rgba(22,163,74,0.30)',
+                    color: isSubmitted ? '#94a3b8' : '#fff',
+                    cursor: isSubmitted ? 'not-allowed' : 'pointer',
+                    boxShadow: isSubmitted ? 'none' : '0 4px 14px rgba(22,163,74,0.30)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                     transition: 'all 0.2s',
+                    opacity: isSubmitted ? 0.6 : 1,
                   }}
+                  title={isSubmitted ? 'Ya entregaste esta asignación' : ''}
                 >
                   <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                   </svg>
-                  Realizar asignación
+                  {isSubmitted ? 'Ya entregado' : 'Realizar asignación'}
                 </button>
               ) : (
                 <button

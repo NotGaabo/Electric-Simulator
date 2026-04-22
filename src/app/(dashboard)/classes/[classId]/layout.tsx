@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import AppHeader from '@/components/base/header/appHeader'
 import AppSidebar from '@/components/base/aside/AppSidebar'
 

@@ -30,6 +30,7 @@ interface AssignmentSummary {
   created_at: string
   simulator_module?: string | null
   status?: string
+  score?: number | null
 }
 
 export default function GradesPage() {
@@ -195,8 +196,13 @@ export default function GradesPage() {
                       </div>
                     </div>
                     <div className="grade-stat">
-                      <span className="grade-stat-label">Puntos</span>
-                      <span className="grade-stat-value">{assignment.points ?? '—'}</span>
+                      <span className="grade-stat-label">Puntuación</span>
+                      <span className="grade-stat-value">
+                        {assignment.score !== null && assignment.score !== undefined 
+                          ? `${assignment.score} / ${assignment.points ?? '—'}`
+                          : `— / ${assignment.points ?? '—'}`
+                        }
+                      </span>
                     </div>
                   </div>
 

@@ -24,6 +24,7 @@ export default function AssignmentsListPage() {
   const [dueDate, setDueDate]         = useState('')
   const [dueTime, setDueTime]         = useState('')
   const [moduleId, setModuleId]       = useState(SIMULATOR_MODULES[0]?.id ?? 'circuit')
+  const [points, setPoints]           = useState<number | ''>(100)
   const [submitting, setSubmitting]   = useState(false)
 
   const buildDueDateValue = () => {
@@ -43,12 +44,13 @@ export default function AssignmentsListPage() {
           title: title.trim(),
           description: description.trim() || null,
           due_date: buildDueDateValue(),
-          simulator_module: moduleId
+          simulator_module: moduleId,
+          points: typeof points === 'number' ? points : null
         })
       })
       const data = await res.json()
       if (!res.ok) { alert(data.error || 'Error al crear la asignación'); return }
-      setTitle(''); setDescription(''); setDueDate(''); setDueTime('')
+      setTitle(''); setDescription(''); setDueDate(''); setDueTime(''); setPoints(100)
       await fetchAssignments()
     } catch (err) {
       console.error(err)
@@ -362,6 +364,18 @@ export default function AssignmentsListPage() {
                       <option key={m.id} value={m.id}>{m.label}</option>
                     ))}
                   </select>
+                  <input
+                    className="asgn-input"
+                    type="number"
+                    placeholder="Puntos (ej: 100)"
+                    min="0"
+                    step="1"
+                    value={points}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      setPoints(val === '' ? '' : Math.max(0, parseInt(val) || 0))
+                    }}
+                  />
                 </div>
                 <button
                   className="asgn-btn-create"

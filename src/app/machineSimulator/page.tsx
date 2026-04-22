@@ -1,6 +1,7 @@
 // @ts-nocheck
 "use client";
 
+import AssignmentSimulatorWrapper from '@/components/assignments/AssignmentSimulatorWrapper';
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import {
   calculateEnergyConsumption,
@@ -517,6 +518,14 @@ function PropEditor({ comp, onChange, onDelete }) {
   );
 }
 
+export default function App() {
+  return (
+    <AssignmentSimulatorWrapper module="machine">
+      <MachineSimulatorApp />
+    </AssignmentSimulatorWrapper>
+  )
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 //  MAIN APP
 // ─────────────────────────────────────────────────────────────────────────────
@@ -530,7 +539,7 @@ export default function App() {
   const [toast,           setToast]           = useState(null);
   const [rightTab,        setRightTab]        = useState("editor");
   const [hovWireId,       setHovWireId]       = useState(null);
-  const [runningTimeMs,   setRunningTimeMs]   = useState(0); // Tiempo de funcionamiento acumulado
+  const [runningTimeMs,   setRunningTimeMs]   = useState(0);
   const canvasRef   = useRef(null);
   const prevBulbRef = useRef(null);
   const lastTickRef = useRef(Date.now());

@@ -3,6 +3,7 @@
 import { useParams } from 'next/navigation'
 import { useAssignment } from '@/hooks/useAssignments'
 import { useComments } from '@/hooks/useComments'
+import { useGradeSubmission } from '@/hooks/useGradeSubmission'
 import AssignmentHeader from '@/components/assignments/AssignmentHeader'
 import AssignmentCard from '@/components/assignments/AssignmentCard'
 import CommentsSection from '@/components/assignments/CommentsSection'
@@ -15,6 +16,7 @@ export default function AssignmentDetailPage() {
 
   const { assignment, loading, error, isOnline } = useAssignment(assignmentId)
   const commentsData = useComments(assignmentId)
+  const { gradeSubmission } = useGradeSubmission()
 
   if (loading) {
     return (
@@ -161,7 +163,13 @@ export default function AssignmentDetailPage() {
               <AssignmentCard assignment={assignment} />
               <CommentsSection {...commentsData} />
               {assignment.my_role === 'teacher' && (
-                <SubmissionsPanel submissions={assignment.submissions ?? []} />
+                <SubmissionsPanel 
+                  submissions={assignment.submissions ?? []} 
+                  assignmentId={assignmentId}
+                  totalPoints={assignment.points}
+                  isTeacher={true}
+                  onGradeSubmit={gradeSubmission}
+                />
               )}
             </div>
 
