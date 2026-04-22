@@ -7,6 +7,7 @@ export const NODE_HEIGHT = 60;
 export const PALETTE_ITEMS = [
   { type: "sensor", label: "Sensor", icon: "📡" },
   { type: "selector", label: "Selector", icon: "🔘" },
+  { type: "relay", label: "Relé", icon: "🔌" },
   { type: "contactor", label: "Contactor", icon: "⚡" },
   { type: "timer", label: "Timer", icon: "⏱" },
   { type: "lamp", label: "Lámpara", icon: "💡" },
