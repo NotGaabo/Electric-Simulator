@@ -203,10 +203,15 @@ function runPhysics(comps, wires, powerOn, runningTimeMs = 0, deltaTimeMs = 100)
   const bulb = comps.find(c => c.type === "bulb");
   let bulbState = "off";
   if (bulb) {
-    const r = V2 / (bulb.ratedVoltage ?? 60);
-    if      (r > 2.4)  bulbState = "exploded";
-    else if (r > 1.7)  bulbState = "burned";
-    else if (r > 0.05) bulbState = "on";
+    // Calcular voltaje real que cae sobre el bombillo: V_bulb = I2 * R_bulb
+    const R_bulb = getReff(bulb);
+    const V_bulb = I2 * R_bulb;
+    const Vr = bulb.ratedVoltage ?? 60;
+    const ratio = V_bulb / Vr;
+    
+    if      (ratio > 2.4)  bulbState = "exploded";
+    else if (ratio > 1.7)  bulbState = "burned";
+    else if (ratio > 0.05) bulbState = "on";
   }
 
   return { 
@@ -429,7 +434,6 @@ function PropEditor({ comp, onChange, onDelete }) {
     ],
     bulb:     [
       {k:"ratedWatts",  unit:"W", label:"Potencia nominal", min:5,  max:500, step:5, color:"#fbbf24", tip:"R=V²/W"},
-      {k:"ratedVoltage",unit:"V", label:"Voltaje nominal",  min:12, max:240, step:6, color:"#fb923c", tip:"V₂>2.4× → explota"},
     ],
     resistor: [{k:"resistance", unit:"Ω", label:"Resistencia R", min:1, max:2000, step:1, color:"#a78bfa", tip:"Oposición al flujo de corriente"}],
     voltmeter:[], ammeter:[],
@@ -529,7 +533,7 @@ export default function App() {
 // ─────────────────────────────────────────────────────────────────────────────
 //  MAIN APP
 // ─────────────────────────────────────────────────────────────────────────────
-export default function App() {
+function MachineSimulatorApp() {
   const [comps,           setComps]           = useState([]);
   const [wires,           setWires]           = useState([]);
   const [selectedId,      setSelectedId]      = useState(null);

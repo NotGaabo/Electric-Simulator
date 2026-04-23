@@ -97,19 +97,16 @@ export function analyzeCircuit(
     c => c.type !== "battery" && c.type !== "switch" && c.type !== "breaker"
   );
 
-  const resistances = loads.map(c => effectiveResistance(c, totalVoltage));
-  const totalResistance = resistances.reduce((a, b) => a + b, 0) || 1;
-
   // Verify connectivity: at least one load is connected between + and - nodes
   const connectedLoads = loads.filter(c => {
     const lNode = find(`${c.id}:left`);
     const rNode = find(`${c.id}:right`);
-    // It's in the circuit if one side connects to batPlus or batMinus
+    // Component is connected to circuit if BOTH ports connect to battery's + or -
+    // and they're on different nodes (forms a path across the component)
     return (
       (lNode === batPlus || lNode === batMinus) &&
-      (rNode === batPlus || rNode === batMinus)
-    ) || (
-      lNode !== rNode // at minimum the two ports are in different nodes
+      (rNode === batPlus || rNode === batMinus) &&
+      lNode !== rNode // ensures it's not a short circuit across the battery
     );
   });
 
@@ -119,19 +116,36 @@ export function analyzeCircuit(
     return { ...empty, compValues: cv };
   }
 
+  // Calculate using only connected loads
+  const connectedResistances = connectedLoads.map(c => effectiveResistance(c, totalVoltage));
+  const totalResistance = connectedResistances.reduce((a, b) => a + b, 0) || 1;
   const current = totalVoltage / totalResistance;
   const totalPower = totalVoltage * current;
 
   const compValues: Record<string, { v: number; i: number; p: number }> = {};
   components.forEach(c => {
-    if (c.type === "battery") {
+    // Only calculate values for battery and connected loads
+    const isConnectedLoad = connectedLoads.some(l => l.id === c.id);
+    const isBattery = c.type === "battery";
+    
+    if (isBattery) {
       compValues[c.id] = { v: c.voltage ?? 9, i: current, p: (c.voltage ?? 9) * current };
     } else if (c.type === "switch" || c.type === "breaker") {
-      compValues[c.id] = { v: 0, i: current, p: 0 };
-    } else {
+      // Switches and breakers only have values if they're connected
+      const isConnected = wires.some(w => w.fromCompId === c.id || w.toCompId === c.id);
+      if (isConnected) {
+        compValues[c.id] = { v: 0, i: current, p: 0 };
+      } else {
+        compValues[c.id] = { v: 0, i: 0, p: 0 };
+      }
+    } else if (isConnectedLoad) {
+      // Only connected loads get calculated values
       const r = effectiveResistance(c, totalVoltage);
       const v = current * r;
       compValues[c.id] = { v, i: current, p: v * current };
+    } else {
+      // Disconnected components have zero values
+      compValues[c.id] = { v: 0, i: 0, p: 0 };
     }
   });
 

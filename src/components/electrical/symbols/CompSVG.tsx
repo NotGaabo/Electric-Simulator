@@ -114,7 +114,7 @@ export function CompSVG({ comp, active = false, selected = false }: CompSVGProps
         return <ResistorSVG active={active} />;
 
       case "luminaire":
-        return <LuminaireSVG active={active} />;
+        return <LuminaireSVG active={active} voltage={comp.voltage} ratedVoltage={comp.ratedVoltage} />;
 
       case "switch":
         return <SwitchSVG isOn={comp.isOn ?? true} active={active} />;

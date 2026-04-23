@@ -44,10 +44,14 @@ export default function CircuitSimulator() {
   } = useCircuitSimulator();
 
   return (
-    <div
-      style={{
-        display: "flex",
-        height: "100vh",
+    <>
+      <style>{`
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+      `}</style>
+      <div
+        style={{
+          display: "flex",
+          height: "100vh",
         background: "#0a0f1e",
         fontFamily: "'Courier New', monospace",
         overflow: "hidden",
@@ -417,7 +421,14 @@ export default function CircuitSimulator() {
 
               {/* Symbol */}
               <div style={{ position: "relative", zIndex: 2 }}>
-                <CompSVG comp={comp} active={active} />
+                <CompSVG 
+                  comp={{
+                    ...comp,
+                    voltage: compData?.v ?? comp.voltage,
+                    ratedVoltage: comp.ratedVoltage ?? 120
+                  }} 
+                  active={active} 
+                />
               </div>
 
               {/* Label */}
@@ -457,6 +468,32 @@ export default function CircuitSimulator() {
                   }}
                 >
                   {compData.v.toFixed(1)}V · {compData.i.toFixed(2)}A · {compData.p.toFixed(1)}W
+                </div>
+              )}
+
+              {/* Overvoltage warning for luminaire */}
+              {active && comp.type === "luminaire" && compData && compData.v > (comp.ratedVoltage ?? 120) * 1.2 && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 8,
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    background: "rgba(239, 68, 68, 0.95)",
+                    border: "2px solid #ef4444",
+                    color: "#fef2f2",
+                    fontSize: 10,
+                    fontWeight: 700,
+                    padding: "6px 8px",
+                    borderRadius: 6,
+                    whiteSpace: "nowrap",
+                    pointerEvents: "none",
+                    zIndex: 50,
+                    boxShadow: "0 0 12px rgba(239, 68, 68, 0.6)",
+                    animation: "blink 0.6s infinite",
+                  }}
+                >
+                  ⚠️ ¡CUIDADO EL VOLTAJE ES DEMASIADO EL BOMBILLO PUEDE EXPLOTAR!!!!!!
                 </div>
               )}
 
@@ -1032,5 +1069,6 @@ export default function CircuitSimulator() {
         * { box-sizing: border-box; }
       `}</style>
     </div>
+    </>
   );
 }
