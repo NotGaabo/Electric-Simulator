@@ -24,21 +24,51 @@ function createNode(type: NodeType, x: number, y: number): AutomationNode {
       return {
         ...base,
         type: "sensor",
+        sensorType: "PIR",
         motion: false,
-        onDurationMs: 0, // 0 = sin one-shot (comportamiento normal)
+        onDurationMs: 0,
         onRemainingMs: 0,
         prevMotion: false,
+        sensitivity: 75,
+        debounceMs: 100,
+        lastActivationTime: 0,
       };
     case "selector":
-      return { ...base, type: "selector", mode: "OFF" };
+      return {
+        ...base,
+        type: "selector",
+        mode: "OFF",
+        automaticEnabled: false,
+      };
+    case "relay":
+      return {
+        ...base,
+        type: "relay",
+        coil: false,
+        contactClosed: false,
+        ratedCurrent: 10,
+        ratedVoltage: 24,
+        contactType: "N/O",
+      };
     case "contactor":
-      return { ...base, type: "contactor", coil: false, contactClosed: false };
+      return {
+        ...base,
+        type: "contactor",
+        coil: false,
+        contactClosed: false,
+        maxCurrent: 50,
+        ratedVoltage: 220,
+        mainContacts: 3,
+        auxiliaryContact: false,
+        currentDetected: 0,
+      };
     case "timer":
       return {
         ...base,
         type: "timer",
         input: false,
         output: false,
+        timerType: "delay-on",
         delayMs: DEFAULT_TIMER_DELAY_MS,
         remainingMs: 0,
       };
@@ -47,11 +77,33 @@ function createNode(type: NodeType, x: number, y: number): AutomationNode {
         ...base,
         type: "lamp",
         active: false,
+        powerW: 40,
+        operationalState: "off",
       };
     case "motor":
-      return { ...base, type: "motor", active: false };
+      return {
+        ...base,
+        type: "motor",
+        active: false,
+        powerHP: 1,
+        rpmNominal: 1800,
+        nominalCurrent: 5,
+        operationalState: "stopped",
+        runningTimeMs: 0,
+      };
     default:
-      return { ...base, type: "sensor", motion: false } as AutomationNode;
+      return {
+        ...base,
+        type: "sensor",
+        sensorType: "PIR",
+        motion: false,
+        onDurationMs: 0,
+        onRemainingMs: 0,
+        prevMotion: false,
+        sensitivity: 75,
+        debounceMs: 100,
+        lastActivationTime: 0,
+      } as AutomationNode;
   }
 }
 
@@ -59,6 +111,7 @@ const INITIAL_STATE: AutomationState = {
   nodes: [],
   wires: [],
   running: false,
+  conditions: [],
 };
 
 export function useAutomationSimulator() {

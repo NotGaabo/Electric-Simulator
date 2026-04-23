@@ -440,7 +440,7 @@ export default function LoginPage() {
 
             <form onSubmit={handleLogin}>
               <div className="field">
-                <label>// email</label>
+                <label>{/* email */}</label>
                 <input
                   type="email"
                   placeholder="you@example.com"
@@ -451,7 +451,7 @@ export default function LoginPage() {
               </div>
 
               <div className="field">
-                <label>// password</label>
+                <label>{/* password */}</label>
                 <input
                   type="password"
                   placeholder="••••••••"

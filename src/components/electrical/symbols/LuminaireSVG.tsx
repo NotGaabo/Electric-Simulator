@@ -1,20 +1,21 @@
 import { COMP_W, COMP_H } from "@/lib/circuit/constants";
 
-export function LuminaireSVG({ active }: { active?: boolean }) {
-  const wire = active ? "#fde68a" : "#94a3b8";
-  const bulbFill = active ? "#fffde7" : "#cbd5e1";
-  const bulbGlow = active ? "#fef08a" : "#94a3b8";
-  const baseColor = active ? "#9ca3af" : "#64748b";
-  const baseDark  = active ? "#6b7280" : "#475569";
+export function LuminaireSVG({ active, voltage = 0, ratedVoltage = 120 }: { active?: boolean; voltage?: number; ratedVoltage?: number }) {
+  const isOvervoltage = voltage > ratedVoltage * 1.2;
+  const wire = isOvervoltage ? "#ef4444" : active ? "#fde68a" : "#94a3b8";
+  const bulbFill = isOvervoltage ? "#450a0a" : active ? "#fffde7" : "#cbd5e1";
+  const bulbGlow = isOvervoltage ? "#ef4444" : active ? "#fef08a" : "#94a3b8";
+  const baseColor = isOvervoltage ? "#7c2d12" : active ? "#9ca3af" : "#64748b";
+  const baseDark  = isOvervoltage ? "#b45309" : active ? "#6b7280" : "#475569";
 
   return (
     <svg width={COMP_W} height={COMP_H} viewBox="0 0 72 56" xmlns="http://www.w3.org/2000/svg">
       <defs>
         {/* Bulb gradient — bright top-left highlight like the photo */}
         <radialGradient id="bulb-grad" cx="38%" cy="30%" r="60%">
-          <stop offset="0%"   stopColor={active ? "#ffffff" : "#e2e8f0"} />
-          <stop offset="60%"  stopColor={active ? "#fef9c3" : "#cbd5e1"} />
-          <stop offset="100%" stopColor={active ? "#fde047" : "#94a3b8"} stopOpacity="0.6" />
+          <stop offset="0%"   stopColor={isOvervoltage ? "#dc2626" : active ? "#ffffff" : "#e2e8f0"} />
+          <stop offset="60%"  stopColor={isOvervoltage ? "#7c2d12" : active ? "#fef9c3" : "#cbd5e1"} />
+          <stop offset="100%" stopColor={isOvervoltage ? "#ef4444" : active ? "#fde047" : "#94a3b8"} stopOpacity="0.6" />
         </radialGradient>
 
         {/* Base/socket gradient */}
@@ -24,7 +25,7 @@ export function LuminaireSVG({ active }: { active?: boolean }) {
         </linearGradient>
 
         {/* Glow filter when active */}
-        {active && (
+        {(active || isOvervoltage) && (
           <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
             <feGaussianBlur stdDeviation="3" result="blur" />
             <feMerge>
@@ -35,10 +36,10 @@ export function LuminaireSVG({ active }: { active?: boolean }) {
         )}
       </defs>
 
-      {/* Glow halo behind bulb when active */}
-      {active && (
+      {/* Glow halo behind bulb when active or overvoltage */}
+      {(active || isOvervoltage) && (
         <ellipse cx="36" cy="24" rx="13" ry="13"
-          fill="#fef08a" opacity="0.25" filter="url(#glow)" />
+          fill={isOvervoltage ? "#ef4444" : "#fef08a"} opacity={isOvervoltage ? 0.4 : 0.25} filter="url(#glow)" />
       )}
 
       {/* Wire leads */}
@@ -50,7 +51,7 @@ export function LuminaireSVG({ active }: { active?: boolean }) {
       <path
         d="M 36 8 a 14 14 0 1 1 -0.01 0 Z"
         fill="url(#bulb-grad)"
-        stroke="#94a3b8"
+        stroke={isOvervoltage ? "#dc2626" : "#94a3b8"}
         strokeWidth="0.8"
         opacity="0.95"
       />
@@ -67,7 +68,7 @@ export function LuminaireSVG({ active }: { active?: boolean }) {
 
       {/* Top shine (specular highlight) */}
       <ellipse cx="32" cy="14" rx="4" ry="3"
-        fill="white" opacity={active ? 0.55 : 0.3}
+        fill={isOvervoltage ? "#fca5a5" : "white"} opacity={isOvervoltage ? 0.4 : active ? 0.55 : 0.3}
         transform="rotate(-20 32 14)"
       />
 
@@ -85,16 +86,16 @@ export function LuminaireSVG({ active }: { active?: boolean }) {
       <rect x="29" y="37" width="7" height="1" rx="0.5" fill="white" opacity="0.15"/>
 
       {/* ── Filament / inner glow when active ── */}
-      {active && (
+      {(active || isOvervoltage) && (
         <>
           {/* Inner warm glow core */}
           <ellipse cx="36" cy="22" rx="6" ry="6"
-            fill="#fef08a" opacity="0.45" />
+            fill={isOvervoltage ? "#dc2626" : "#fef08a"} opacity={isOvervoltage ? 0.6 : 0.45} />
           <ellipse cx="36" cy="22" rx="3" ry="3"
-            fill="#fde047" opacity="0.7" />
+            fill={isOvervoltage ? "#ef4444" : "#fde047"} opacity={isOvervoltage ? 0.85 : 0.7} />
           {/* Filament lines */}
           <path d="M 33 22 Q 34.5 19 36 22 Q 37.5 25 39 22"
-            stroke="#fbbf24" strokeWidth="1" fill="none" strokeLinecap="round"/>
+            stroke={isOvervoltage ? "#ef4444" : "#fbbf24"} strokeWidth="1" fill="none" strokeLinecap="round"/>
         </>
       )}
     </svg>

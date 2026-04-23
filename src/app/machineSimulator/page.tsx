@@ -3,6 +3,15 @@
 
 import AssignmentSimulatorWrapper from '@/components/assignments/AssignmentSimulatorWrapper';
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
+import {
+  calculateEnergyConsumption,
+  calculateEnergyCost,
+  formatRunningTime,
+  getMaintenanceStatus,
+  calculateMotorPower,
+  calculateStartupCurrent,
+  validateMotorProtection,
+} from "@/lib/calculations/machineCalculations";
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  CONSTANTS
@@ -95,10 +104,16 @@ function validateCircuit(comps, wires) {
 // ─────────────────────────────────────────────────────────────────────────────
 //  PHYSICS ENGINE
 // ─────────────────────────────────────────────────────────────────────────────
-function runPhysics(comps, wires, powerOn) {
-  const empty = { V1:0, V2:0, I1:0, I2:0, S:0, P:0, Ploss:0, eta:0.95,
+function runPhysics(comps, wires, powerOn, runningTimeMs = 0, deltaTimeMs = 100) {
+  const empty = { 
+    V1:0, V2:0, I1:0, I2:0, S:0, P:0, Ploss:0, eta:0.95,
     ratio:2, n1:200, n2:100, active:false, bulbState:"off", wireSpeed:0,
-    circuitOk:false, circuitMsg:"", fluxPct:0 };
+    circuitOk:false, circuitMsg:"", fluxPct:0,
+    // Nuevos campos: E = P·t y tiempo de funcionamiento
+    E:0, energyKWh:0, energyCost:0, runningTimeMs:0, 
+    maintenanceStatus: null, maintenanceMessage: "", maintenanceCritical: false,
+    I_startup:0, protection_valid:false, protection_warning:"",
+  };
 
   const { closed, reason } = validateCircuit(comps, wires);
   if (!closed) return { ...empty, circuitMsg: reason };
@@ -115,8 +130,11 @@ function runPhysics(comps, wires, powerOn) {
   if (!powerOn) {
     const V1 = src?.voltage ?? 120;
     const V2 = V1 / ratio;
-    return { ...empty, V1, V2, ratio, n1, n2, eta, circuitOk:true,
-      circuitMsg:"Circuito cerrado. Enciende el sistema." };
+    return { 
+      ...empty, V1, V2, ratio, n1, n2, eta, circuitOk:true,
+      circuitMsg:"Circuito cerrado. Enciende el sistema.",
+      runningTimeMs: runningTimeMs,
+    };
   }
 
   const V1  = src?.voltage ?? 120;
@@ -146,18 +164,72 @@ function runPhysics(comps, wires, powerOn) {
   const Ploss = S * (1 - eta);
   const wireSpeed = clamp(I2 / 15, 0.04, 1);
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Nuevas fórmulas: Consumo energético (E = P·t) y tiempo de funcionamiento
+  // ─────────────────────────────────────────────────────────────────────────────
+  
+  // Actualizar tiempo de funcionamiento (acumulativo)
+  const updatedRunningTimeMs = runningTimeMs + (powerOn ? deltaTimeMs : 0);
+  
+  // Calcular consumo energético: E = P × t
+  const energyKWh = calculateEnergyConsumption(P, updatedRunningTimeMs);
+  const energyCost = calculateEnergyCost(energyKWh, 0.12); // $0.12 por kWh
+  
+  // Información de mantenimiento preventivo
+  const maintenanceInfo = getMaintenanceStatus(updatedRunningTimeMs);
+  
+  // Parámetros del motor (si existen)
+  let I_startup = 0;
+  let protection_valid = true;
+  let protection_warning = "";
+  
+  const motorLoad = comps.find(c => c.type === "motor" && c.nominalCurrent);
+  if (motorLoad) {
+    const nominalCurrent = motorLoad.nominalCurrent ?? I2;
+    I_startup = calculateStartupCurrent(nominalCurrent, 5); // 5× típico
+    
+    // Validar protección
+    const protectionComp = comps.find(c => c.type === "breaker");
+    if (protectionComp) {
+      const protection = validateMotorProtection(
+        nominalCurrent,
+        protectionComp.ratedCurrent ?? 20
+      );
+      protection_valid = protection.isValid;
+      protection_warning = protection.warning || protection.message;
+    }
+  }
+
   const bulb = comps.find(c => c.type === "bulb");
   let bulbState = "off";
   if (bulb) {
-    const r = V2 / (bulb.ratedVoltage ?? 60);
-    if      (r > 2.4)  bulbState = "exploded";
-    else if (r > 1.7)  bulbState = "burned";
-    else if (r > 0.05) bulbState = "on";
+    // Calcular voltaje real que cae sobre el bombillo: V_bulb = I2 * R_bulb
+    const R_bulb = getReff(bulb);
+    const V_bulb = I2 * R_bulb;
+    const Vr = bulb.ratedVoltage ?? 60;
+    const ratio = V_bulb / Vr;
+    
+    if      (ratio > 2.4)  bulbState = "exploded";
+    else if (ratio > 1.7)  bulbState = "burned";
+    else if (ratio > 0.05) bulbState = "on";
   }
 
-  return { V1, V2, I1, I2, S, P, Ploss, eta, ratio, n1, n2,
+  return { 
+    V1, V2, I1, I2, S, P, Ploss, eta, ratio, n1, n2,
     active:true, sat, wireSpeed, bulbState, circuitOk:true, circuitMsg:"",
-    fluxPct, freq };
+    fluxPct, freq,
+    // Energía y tiempo de funcionamiento
+    E: P * (updatedRunningTimeMs / (1000 * 60 * 60)), // E en Wh
+    energyKWh: energyKWh,
+    energyCost: energyCost,
+    runningTimeMs: updatedRunningTimeMs,
+    maintenanceStatus: maintenanceInfo.level,
+    maintenanceMessage: maintenanceInfo.message,
+    maintenanceCritical: maintenanceInfo.urgency === "critical",
+    I_startup: I_startup,
+    protection_valid: protection_valid,
+    protection_warning: protection_warning,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -362,7 +434,6 @@ function PropEditor({ comp, onChange, onDelete }) {
     ],
     bulb:     [
       {k:"ratedWatts",  unit:"W", label:"Potencia nominal", min:5,  max:500, step:5, color:"#fbbf24", tip:"R=V²/W"},
-      {k:"ratedVoltage",unit:"V", label:"Voltaje nominal",  min:12, max:240, step:6, color:"#fb923c", tip:"V₂>2.4× → explota"},
     ],
     resistor: [{k:"resistance", unit:"Ω", label:"Resistencia R", min:1, max:2000, step:1, color:"#a78bfa", tip:"Oposición al flujo de corriente"}],
     voltmeter:[], ammeter:[],
@@ -463,19 +534,38 @@ export default function App() {
 //  MAIN APP
 // ─────────────────────────────────────────────────────────────────────────────
 function MachineSimulatorApp() {
-  const [comps,       setComps]       = useState([]);
-  const [wires,       setWires]       = useState([]);
-  const [selectedId,  setSelectedId]  = useState(null);
-  const [pendingPort, setPendingPort] = useState(null);
-  const [mousePos,    setMousePos]    = useState({x:0,y:0});
-  const [powerOn,     setPowerOn]     = useState(false);
-  const [toast,       setToast]       = useState(null);
-  const [rightTab,    setRightTab]    = useState("editor");
-  const [hovWireId,   setHovWireId]   = useState(null);
+  const [comps,           setComps]           = useState([]);
+  const [wires,           setWires]           = useState([]);
+  const [selectedId,      setSelectedId]      = useState(null);
+  const [pendingPort,     setPendingPort]     = useState(null);
+  const [mousePos,        setMousePos]        = useState({x:0,y:0});
+  const [powerOn,         setPowerOn]         = useState(false);
+  const [toast,           setToast]           = useState(null);
+  const [rightTab,        setRightTab]        = useState("editor");
+  const [hovWireId,       setHovWireId]       = useState(null);
+  const [runningTimeMs,   setRunningTimeMs]   = useState(0);
   const canvasRef   = useRef(null);
   const prevBulbRef = useRef(null);
+  const lastTickRef = useRef(Date.now());
 
-  const state = useMemo(() => runPhysics(comps, wires, powerOn), [comps, wires, powerOn]);
+  // Actualizar tiempo de funcionamiento cada 100ms cuando el sistema esté encendido
+  useEffect(() => {
+    if (!powerOn) return;
+    
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const deltaMs = Math.min(now - lastTickRef.current, 200); // Máximo 200ms por frame
+      lastTickRef.current = now;
+      setRunningTimeMs(prev => prev + deltaMs);
+    }, 100);
+
+    return () => {
+      clearInterval(interval);
+      lastTickRef.current = Date.now();
+    };
+  }, [powerOn]);
+
+  const state = useMemo(() => runPhysics(comps, wires, powerOn, runningTimeMs, 100), [comps, wires, powerOn, runningTimeMs]);
 
   const showToast = useCallback((msg, type="ok") => {
     setToast({msg,type});
@@ -922,7 +1012,7 @@ function MachineSimulatorApp() {
 
         {/* Clear */}
         <div style={{position:"absolute",bottom:14,right:14,zIndex:200}}>
-          <button onClick={()=>{setComps([]);setWires([]);setSelectedId(null);setPowerOn(false);prevBulbRef.current=null;}}
+          <button onClick={()=>{setComps([]);setWires([]);setSelectedId(null);setPowerOn(false);setRunningTimeMs(0);prevBulbRef.current=null;}}
             style={{background:"rgba(6,13,26,0.95)",border:"0.5px solid #1e293b",color:"#334155",fontSize:10,padding:"6px 14px",borderRadius:6,cursor:"pointer",letterSpacing:"0.08em",transition:"all 0.15s",fontFamily:"inherit"}}
             onMouseEnter={e=>{e.currentTarget.style.borderColor="#ef4444";e.currentTarget.style.color="#ef4444";}}
             onMouseLeave={e=>{e.currentTarget.style.borderColor="#1e293b";e.currentTarget.style.color="#334155";}}>
@@ -941,7 +1031,7 @@ function MachineSimulatorApp() {
       {/* ══ RIGHT PANEL ══ */}
       <aside style={{width:242,background:"#060d1a",borderLeft:"0.5px solid #1e293b",display:"flex",flexDirection:"column",flexShrink:0}}>
         <div style={{display:"flex",borderBottom:"0.5px solid #1e293b"}}>
-          {[["metrics","⚡ Mediciones"],["editor","✏ Editor"]].map(([t,label])=>(
+          {[["metrics","⚡ Mediciones"],["energy","⚡ Energía"],["editor","✏ Editor"]].map(([t,label])=>(
             <button key={t}
               onClick={()=>setRightTab(t)}
               style={{flex:1,border:"none",background:"transparent",cursor:"pointer",padding:"10px 6px",fontSize:10,letterSpacing:"0.08em",transition:"all 0.15s",fontFamily:"inherit",color:rightTab===t?"#60a5fa":"#334155",borderBottom:rightTab===t?"1.5px solid #3b82f6":"1.5px solid transparent"}}>
@@ -1031,6 +1121,85 @@ function MachineSimulatorApp() {
                 ].map(([f,d])=>(
                   <div key={f} style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:4}}>
                     <span style={{fontSize:9,color:"#4ade80",flexShrink:0,minWidth:100,fontWeight:700}}>{f}</span>
+                    <span style={{fontSize:8,color:"#2a4a3a"}}>{d}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {rightTab==="energy" && (
+            <div style={{padding:"14px"}}>
+              <div style={{fontSize:8,color:"#334155",letterSpacing:"0.14em",marginBottom:10,textTransform:"uppercase",fontWeight:700}}>
+                Consumo & Mantenimiento
+              </div>
+
+              {/* Energy consumption card */}
+              <div style={{padding:"10px",background:"rgba(74,222,128,0.05)",border:"0.5px solid rgba(74,222,128,0.2)",borderRadius:6,marginBottom:12}}>
+                <div style={{fontSize:8,color:"#4ade80",fontWeight:700,letterSpacing:"0.08em",marginBottom:6}}>CONSUMO ENERGÉTICO</div>
+                <div style={{fontSize:16,fontWeight:700,color:"#4ade80",marginBottom:3}}>
+                  {fmt(state.energyKWh??0,4)} kWh
+                </div>
+                <div style={{fontSize:9,color:"#334155",lineHeight:1.8}}>
+                  Fórmula: E = P × t<br/>
+                  {fmt(state.P??0,1)}W × {(state.runningTimeMs/(1000*60*60)).toFixed(2)}h<br/>
+                  Costo: ${fmt(state.energyCost??0,2)}
+                </div>
+              </div>
+
+              {/* Running time */}
+              <div style={{padding:"10px",background:"rgba(96,165,250,0.05)",border:"0.5px solid rgba(96,165,250,0.2)",borderRadius:6,marginBottom:12}}>
+                <div style={{fontSize:8,color:"#60a5fa",fontWeight:700,letterSpacing:"0.08em",marginBottom:6}}>TIEMPO DE FUNCIONAMIENTO</div>
+                <div style={{fontSize:14,fontWeight:700,color:"#60a5fa",marginBottom:4}}>
+                  {Math.floor(state.runningTimeMs/(1000*60*60))}h {Math.floor((state.runningTimeMs%(1000*60*60))/(1000*60))}m {Math.floor((state.runningTimeMs%(1000*60))/1000)}s
+                </div>
+                <div style={{fontSize:9,color:"#334155",lineHeight:1.6}}>
+                  Total: {(state.runningTimeMs/1000).toFixed(1)} segundos
+                </div>
+              </div>
+
+              {/* Maintenance status */}
+              <div style={{padding:"10px",background:state.maintenanceCritical?"rgba(239,68,68,0.05)":"rgba(251,191,36,0.05)",border:`0.5px solid ${state.maintenanceCritical?"rgba(239,68,68,0.2)":"rgba(251,191,36,0.2)"}`,borderRadius:6,marginBottom:12}}>
+                <div style={{fontSize:8,color:state.maintenanceCritical?"#f87171":"#fcd34d",fontWeight:700,letterSpacing:"0.08em",marginBottom:6}}>
+                  {state.maintenanceCritical?"🔴 MANTENIMIENTO":"🟡 PRÓXIMO MANTENIMIENTO"}
+                </div>
+                <div style={{fontSize:9,color:state.maintenanceCritical?"#fca5a5":"#f5d77e",lineHeight:1.7,marginBottom:6}}>
+                  {state.maintenanceMessage||"Monitoreando..."}
+                </div>
+                <div style={{fontSize:8,color:"#334155",lineHeight:1.7}}>
+                  <strong>Intervalos típicos:</strong><br/>
+                  • 250h: Inspección visual<br/>
+                  • 500h: Cambio de aceite<br/>
+                  • 1000h: Revisión general<br/>
+                  • 2000h: Revisión profunda
+                </div>
+              </div>
+
+              {/* Motor protection */}
+              {state.I_startup > 0 && (
+                <div style={{padding:"10px",background:state.protection_valid?"rgba(74,222,128,0.05)":"rgba(239,68,68,0.05)",border:`0.5px solid ${state.protection_valid?"rgba(74,222,128,0.2)":"rgba(239,68,68,0.2)"}`,borderRadius:6,marginBottom:12}}>
+                  <div style={{fontSize:8,color:state.protection_valid?"#4ade80":"#f87171",fontWeight:700,letterSpacing:"0.08em",marginBottom:6}}>
+                    {state.protection_valid?"✓ PROTECCIÓN ADECUADA":"⚠ PROTECCIÓN INADECUADA"}
+                  </div>
+                  <div style={{fontSize:9,color:"#334155",lineHeight:1.8}}>
+                    I nominal: {fmt(state.I2??0,2)}A<br/>
+                    I arranque: {fmt(state.I_startup??0,2)}A (5×)<br/>
+                    {state.protection_warning}
+                  </div>
+                </div>
+              )}
+
+              {/* Energy formulas */}
+              <div style={{padding:"10px",background:"rgba(74,222,128,0.03)",border:"0.5px solid #1e293b",borderRadius:6}}>
+                <div style={{fontSize:8,color:"#334155",marginBottom:7,letterSpacing:"0.1em",fontWeight:700}}>FÓRMULAS ENERGÍA</div>
+                {[
+                  ["E = P × t","Energía = Potencia × Tiempo"],
+                  ["P = V × I","Potencia eléctrica"],
+                  ["Cost = E × rate","Costo energético"],
+                  ["I_arr = I_nom × 5","Corriente de arranque"],
+                ].map(([f,d])=>(
+                  <div key={f} style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:4}}>
+                    <span style={{fontSize:9,color:"#4ade80",flexShrink:0,minWidth:90,fontWeight:700}}>{f}</span>
                     <span style={{fontSize:8,color:"#2a4a3a"}}>{d}</span>
                   </div>
                 ))}

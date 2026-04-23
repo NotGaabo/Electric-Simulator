@@ -1,7 +1,11 @@
 'use client'
 
+import { useRef, useState, useEffect } from 'react'
+import AppHeader from '@/components/base/header/appHeader'
 import AppSidebar from '@/components/base/aside/AppSidebar'
 import { useDashboard } from '@/hooks/useDashboard'
+import { useAuth } from '@/hooks/useAuth' // ajusta la ruta según tu proyecto
+
 
 export default function ClassroomDashboard() {
   const { goToClass,
@@ -10,7 +14,6 @@ export default function ClassroomDashboard() {
     getTeacherName,
     getPaletteForClass,
     createClass,
-    dropdownRef,
     joinClass,
     classes,
     showCreateModal,
@@ -27,10 +30,23 @@ export default function ClassroomDashboard() {
     setDescription,
     joinCode,
     setJoinCode,
-    loading,
     joinLoading,
     fetchingClasses,
     formatDate} = useDashboard()
+
+  const { user, getUserInitials, logout, loading } = useAuth()
+  const userDropdownRef = useRef<HTMLDivElement>(null)
+  const [showUserDropdown, setShowUserDropdown] = useState(false)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (userDropdownRef.current && !userDropdownRef.current.contains(event.target as Node)) {
+        setShowUserDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   return (
     <>
@@ -110,6 +126,17 @@ export default function ClassroomDashboard() {
           z-index: 50;
           height: 64px;
           box-shadow: 0 1px 3px rgba(34,197,94,0.06);
+        }
+        
+
+        .lms-header-inner {
+          max-width: 1400px;
+          margin: 0 auto;
+          padding: 0 24px;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
         }
 
         .lms-logo-icon {
@@ -552,98 +579,160 @@ export default function ClassroomDashboard() {
         @media (min-width: 1024px) {
           .lms-mobile-menu-btn { display: none !important; }
         }
+          /* Aliases para app-header → lms-header */
+.app-header { background: rgba(255,255,255,0.90); backdrop-filter: blur(16px); border-bottom: 1px solid var(--g100); position: sticky; top: 0; z-index: 50; height: 64px; box-shadow: 0 1px 3px rgba(34,197,94,0.06); }
+.app-header-inner { max-width: 1400px; margin: 0 auto; padding: 0 24px; height: 100%; display: flex; align-items: center; justify-content: space-between; }
+.app-header-logo-icon { width: 38px; height: 38px; background: linear-gradient(135deg, var(--g500), var(--g700)); border-radius: 10px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(34,197,94,0.35); }
+.app-header-logo-text { font-family: 'Space Mono', monospace; font-size: 15px; font-weight: 700; letter-spacing: -0.3px; color: var(--gray-900); }
+.app-header-logo-text span { color: var(--g500); }
+.app-header-search { display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: var(--gray-100); border: 1px solid var(--gray-200); border-radius: 100px; color: var(--gray-400); font-size: 0.8rem; cursor: pointer; min-width: 200px; justify-content: space-between; }
+.app-header-search-kbd { font-family: 'Space Mono', monospace; font-size: 0.65rem; background: var(--white); border: 1px solid var(--gray-200); border-radius: 5px; padding: 1px 5px; color: var(--gray-400); }
+.app-header-btn-primary { display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: linear-gradient(135deg, var(--g500), var(--g700)); color: #fff; font-weight: 500; font-size: 0.8125rem; border-radius: 100px; border: none; cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif; box-shadow: 0 4px 14px rgba(22,163,74,0.30); }
+.app-header-btn-primary:hover { box-shadow: 0 6px 20px rgba(22,163,74,0.40); transform: translateY(-1px); }
+.app-header-chevron { transition: transform 0.2s; }
+.app-header-chevron.open { transform: rotate(180deg); }
+.app-header-new-label { }
+.app-header-dropdown { position: absolute; right: 0; top: calc(100% + 8px); width: 224px; background: var(--white); border: 1px solid var(--g100); border-radius: 16px; padding: 6px; box-shadow: 0 20px 50px rgba(0,0,0,0.10); z-index: 100; animation: dropIn 0.15s ease-out; }
+.app-header-dropdown-item { width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; background: transparent; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 0.8125rem; font-weight: 500; color: var(--gray-500); transition: all 0.15s; text-align: left; }
+.app-header-dropdown-item:hover { background: var(--g50); color: var(--gray-900); }
+.app-header-dropdown-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.app-header-dropdown-divider { height: 1px; background: var(--g100); margin: 4px 0; }
+.app-header-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--g600), var(--g700)); border: 2px solid var(--g200); display: flex; align-items: center; justify-content: center; font-family: 'Space Mono', monospace; font-size: 0.65rem; font-weight: 700; color: #fff; letter-spacing: 0.05em; cursor: pointer; }
+.app-header-user-dropdown { position: absolute; right: 0; top: calc(100% + 8px); width: 224px; background: var(--white); border: 1px solid var(--g100); border-radius: 16px; padding: 6px; box-shadow: 0 20px 50px rgba(0,0,0,0.10); z-index: 100; animation: dropIn 0.15s ease-out; }
+.app-header-user-info { padding: 10px 12px 8px; }
+.app-header-user-name { font-size: 0.875rem; font-weight: 500; color: var(--gray-900); }
+.app-header-user-email { font-size: 0.75rem; color: var(--gray-400); margin-top: 2px; }
+.app-header-menu-btn { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; background: var(--gray-100); border: 1px solid var(--gray-200); cursor: pointer; color: var(--gray-500); display: none; }
+@media (max-width: 1023px) { .app-header-menu-btn { display: flex !important; } .app-header-search { display: none !important; } .app-header-new-label { display: none !important; } }
       `}</style>
 
       <div className="lms-root">
         {/* ── Header ── */}
-        <header className="lms-header">
-          <div className="lms-header-inner" style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', zIndex: 1 }}>
+        <header className="app-header">
+  <div className="app-header-inner">
 
-            {/* Left */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-              <button
-                onClick={() => setShowSidebar(!showSidebar)}
-                className="lms-mobile-menu-btn"
-                style={{ padding: 8, background: 'var(--g50)', border: '1px solid var(--g100)', borderRadius: 8, cursor: 'pointer', color: 'var(--gray-500)', alignItems: 'center', justifyContent: 'center' }}
-              >
-                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+    {/* Left: Menu button + Logo */}
+    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+      <button
+        onClick={() => setShowSidebar(!showSidebar)}
+        className="app-header-menu-btn"
+      >
+          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div className="app-header-logo-icon">
+          <svg width="20" height="20" fill="none" stroke="white" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        </div>
+        <div className="app-header-logo-text">Volti<span>fy</span></div>
+      </div>
+    </div>
+
+    {/* Center: Search */}
+    <div className="app-header-search">
+      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg>
+      <span className="app-header-search-kbd">⌘K</span>
+    </div>
+
+    {/* Right: Notifications + Nueva + Avatar */}
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, position: 'relative' }}>
+
+      {/* Notifications */}
+      <button style={{ width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', border: '1px solid #e2e8f0', cursor: 'pointer', color: '#94a3b8', position: 'relative' }}>
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+        </svg>
+        <span style={{ position: 'absolute', top: 7, right: 7, width: 6, height: 6, borderRadius: '50%', background: '#6366f1', border: '1.5px solid #ffffff' }}></span>
+      </button>
+
+      {/* Nueva button */}
+      <div style={{ position: 'relative' }}>
+        <button className="app-header-btn-primary" onClick={() => setShowDropdown(!showDropdown)}>
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+          </svg>
+          <span className="app-header-new-label">Nueva</span>
+          <svg className={`app-header-chevron ${showDropdown ? 'open' : ''}`} width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        {showDropdown && (
+          <div className="app-header-dropdown">
+            <button className="app-header-dropdown-item" onClick={() => setShowDropdown(false)}>
+              <span className="app-header-dropdown-icon" style={{ background: 'rgba(6,182,212,0.08)' }}>
+                <svg width="15" height="15" fill="none" stroke="#0891b2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-              </button>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div className="lms-logo-icon">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M13 2L3 14h9l-1 8 10-8h-9l1-8z"/>
-                  </svg>
-                </div>
-                <span className="lms-logo-text">Volti<span>fy</span></span>
+              </span>
+              <div>
+                <div style={{ color: '#334155' }}>Unirse a una clase</div>
+                <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: 1 }}>Con código de invitación</div>
               </div>
-            </div>
-
-            {/* Center search */}
-            <div className="lms-header-search" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px', background: 'var(--g50)', border: '1px solid var(--g100)', borderRadius: 100, color: 'var(--gray-400)', fontSize: '0.8rem', cursor: 'pointer', userSelect: 'none' }}>
-              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <span style={{ color: 'var(--gray-400)', fontSize: '0.7rem', background: 'var(--g100)', padding: '2px 6px', borderRadius: 5, border: '1px solid var(--g200)', fontFamily: 'Space Mono, monospace' }}>⌘K</span>
-            </div>
-
-            {/* Right */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <button style={{ width: 36, height: 36, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--g50)', border: '1px solid var(--g100)', cursor: 'pointer', color: 'var(--gray-400)', position: 'relative' }}>
-                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </button>
+            <div className="app-header-dropdown-divider" />
+            <button className="app-header-dropdown-item" onClick={() => setShowDropdown(false)}>
+              <span className="app-header-dropdown-icon" style={{ background: 'rgba(99,102,241,0.08)' }}>
+                <svg width="15" height="15" fill="none" stroke="#6366f1" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                <span className="notif-dot"></span>
-              </button>
-
-              <div style={{ position: 'relative' }} ref={dropdownRef}>
-                <button className="lms-btn-primary" onClick={() => setShowDropdown(!showDropdown)}>
-                  <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                  </svg>
-                  <span className="lms-header-new-label">Nueva</span>
-                  <svg className={`lms-chevron ${showDropdown ? 'open' : ''}`} width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-
-                {showDropdown && (
-                  <div className="lms-dropdown">
-                    <button className="lms-dropdown-item" onClick={() => { setShowDropdown(false); setShowJoinModal(true) }}>
-                      <span className="lms-dropdown-icon" style={{ background: 'rgba(34,197,94,0.08)' }}>
-                        <svg width="15" height="15" fill="none" stroke="var(--g600)" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                      </span>
-                      <div>
-                        <div style={{ color: 'var(--gray-700)' }}>Unirse a una clase</div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--gray-400)', marginTop: 1, fontWeight: 300 }}>Con código de invitación</div>
-                      </div>
-                    </button>
-
-                    <div className="lms-dropdown-divider" />
-
-                    <button className="lms-dropdown-item" onClick={() => { setShowDropdown(false); setShowCreateModal(true) }}>
-                      <span className="lms-dropdown-icon" style={{ background: 'rgba(34,197,94,0.08)' }}>
-                        <svg width="15" height="15" fill="none" stroke="var(--g500)" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                        </svg>
-                      </span>
-                      <div>
-                        <div style={{ color: 'var(--gray-700)' }}>Crear una clase</div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--gray-400)', marginTop: 1, fontWeight: 300 }}>Como instructor</div>
-                      </div>
-                    </button>
-                  </div>
-                )}
+              </span>
+              <div>
+                <div style={{ color: '#334155' }}>Crear una clase</div>
+                <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: 1 }}>Como instructor</div>
               </div>
-
-              <div className="lms-avatar">TU</div>
-            </div>
+            </button>
           </div>
-        </header>
+        )}
+      </div>
+
+      {/* User Avatar Dropdown */}
+      <div style={{ position: 'relative' }} ref={userDropdownRef}>
+        <button
+          className="app-header-avatar"
+          onClick={() => setShowUserDropdown(!showUserDropdown)}
+          title={user?.full_name || 'Usuario'}
+        >
+          {loading ? '...' : getUserInitials()}
+        </button>
+
+        {showUserDropdown && (
+          <div className="app-header-user-dropdown">
+            <div className="app-header-user-info">
+              <div className="app-header-user-name">{user?.full_name || 'Usuario'}</div>
+              <div className="app-header-user-email">{user?.email || ''}</div>
+            </div>
+            <div className="app-header-dropdown-divider" />
+            <button
+              className="app-header-dropdown-item"
+              onClick={() => {
+                logout()
+                setShowUserDropdown(false)
+              }}
+              style={{ color: '#ef4444' }}
+            >
+              <span className="app-header-dropdown-icon" style={{ background: 'rgba(239,68,68,0.08)' }}>
+                <svg width="15" height="15" fill="none" stroke="#ef4444" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </span>
+              <div style={{ textAlign: 'left' }}>
+                <div>Cerrar sesión</div>
+              </div>
+            </button>
+          </div>
+        )}
+      </div>
+
+    </div>
+  </div>
+</header>
 
         <div style={{ display: 'flex', alignItems: 'flex-start', minHeight: 'calc(100vh - 64px)', position: 'relative', zIndex: 1 }}>
           {showSidebar && (
