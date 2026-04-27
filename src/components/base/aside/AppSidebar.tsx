@@ -79,11 +79,7 @@ export default function AppSidebar({ assignments = [], activeItem }: AppSidebarP
       return { ...item, href: classId ? `/classes/${classId}` : '/classes' }
     }
     if (item.key === 'calendario') {
-<<<<<<< HEAD:src/components/base/aside/Appsidebar.tsx
-      return { ...item, href: classId ? `/classes/${classId}` : '/classes' }
-=======
       return { ...item, href: classId ? `/classes/${classId}/calendario` : '/mis-clases/calendario' }
->>>>>>> 4a99e9cf3ae6d4d360a846f749311711d7d588ee:src/components/base/aside/AppSidebar.tsx
     }
     return item
   })
