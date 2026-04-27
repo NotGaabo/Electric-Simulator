@@ -72,23 +72,57 @@ export async function POST(
       )
     }
 
-    // Update submission with grade
-    const { error: updateError } = await supabase
-      .from('assignment_submissions')
-      .update({
-        score,
-        feedback: feedback || null,
-        graded_at: new Date().toISOString(),
-        graded_by: user.id
-      })
-      .eq('id', submissionId)
+    // Save grade in the dedicated grades table
+    const { data: existingGrade, error: gradeFetchError } = await supabase
+      .from('assignment_submissions_grades')
+      .select('id')
+      .eq('submission_id', submissionId)
+      .maybeSingle()
 
-    if (updateError) {
-      console.error('Error updating grade:', updateError)
+    if (gradeFetchError) {
+      console.error('Error fetching existing grade:', gradeFetchError)
       return NextResponse.json(
-        { error: 'No se pudo guaard la calificación' },
+        { error: 'No se pudo verificar la calificación' },
         { status: 500 }
       )
+    }
+
+    if (existingGrade) {
+      const { error: updateError } = await supabase
+        .from('assignment_submissions_grades')
+        .update({
+          score,
+          feedback: feedback || null,
+          graded_at: new Date().toISOString(),
+        })
+        .eq('submission_id', submissionId)
+
+      if (updateError) {
+        console.error('Error updating grade:', updateError)
+        return NextResponse.json(
+          { error: 'No se pudo guardar la calificación' },
+          { status: 500 }
+        )
+      }
+    } else {
+      const { error: insertError } = await supabase
+        .from('assignment_submissions_grades')
+        .insert({
+          submission_id: submissionId,
+          assignment_id: assignmentId,
+          teacher_id: user.id,
+          score,
+          feedback: feedback || null,
+          graded_at: new Date().toISOString(),
+        })
+
+      if (insertError) {
+        console.error('Error inserting grade:', insertError)
+        return NextResponse.json(
+          { error: 'No se pudo guardar la calificación' },
+          { status: 500 }
+        )
+      }
     }
 
     return NextResponse.json({ success: true })

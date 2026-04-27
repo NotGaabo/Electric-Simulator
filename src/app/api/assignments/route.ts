@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
       status: submittedSet.has(assignment.id)
         ? 'submitted'
         : 'not_submitted',
-      score: gradesMap.get(assignment.id) || null
+      score: gradesMap.has(assignment.id) ? gradesMap.get(assignment.id) : null
     }))
 
     return NextResponse.json(normalized)
