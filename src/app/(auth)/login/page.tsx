@@ -2,16 +2,34 @@
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+
+const GOOGLE_OAUTH_SCOPES = [
+  'openid',
+  'https://www.googleapis.com/auth/userinfo.email',
+  'https://www.googleapis.com/auth/userinfo.profile',
+].join(' ')
+
+function getGoogleOAuthOptions(next = '/mis-clases') {
+  const callbackUrl = new URL('/auth/callback', window.location.origin)
+  callbackUrl.searchParams.set('next', next)
+
+  return {
+    redirectTo: callbackUrl.toString(),
+    scopes: GOOGLE_OAUTH_SCOPES,
+  }
+}
 
 export default function LoginPage() {
   const supabase = createClient()
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const oauthError = searchParams.get('error') ?? ''
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -31,7 +49,7 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/mis-clases` },
+      options: getGoogleOAuthOptions('/mis-clases'),
     })
     if (error) alert(error.message)
   }
@@ -172,6 +190,16 @@ export default function LoginPage() {
           color: var(--gray-400);
           text-align: center;
           margin-bottom: 32px;
+        }
+        .error-box {
+          margin-bottom: 16px;
+          padding: 12px 14px;
+          background: rgba(254, 242, 242, 0.95);
+          border: 1px solid #fecaca;
+          border-radius: 10px;
+          color: #b91c1c;
+          font-size: 13px;
+          font-family: 'Space Mono', monospace;
         }
 
         /* Fields */
@@ -437,6 +465,8 @@ export default function LoginPage() {
 
             <h1 className="form-title">Welcome <strong>back</strong></h1>
             <p className="form-sub">Please enter your details to continue.</p>
+
+            {oauthError && <div className="error-box">// {oauthError}</div>}
 
             <form onSubmit={handleLogin}>
               <div className="field">
