@@ -17,6 +17,12 @@ export interface AssignmentSubmission {
   graded_by?: string | null
 }
 
+export interface SavedAssignmentGrade {
+  score: number
+  feedback: string | null
+  graded_at: string
+}
+
 export interface Assignment {
   id: string
   class_id: string

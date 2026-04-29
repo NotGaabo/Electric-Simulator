@@ -835,6 +835,11 @@ export default function ClassroomDashboard() {
                                   </svg>
                                   {formatDate(classItem.created_at)}
                                 </div>
+                                {classItem.code && (
+                                  <div className="text-xs text-gray-500 font-mono mt-2">
+                                    Código: <span className="text-gray-700">{classItem.code}</span>
+                                  </div>
+                                )}
                               </div>
                             </div>
 

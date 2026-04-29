@@ -55,8 +55,8 @@ export async function GET(request: NextRequest) {
 
     const assignmentIds = assignments.map(a => a.id)
 
-    let submittedSet = new Set<string>()
-    let gradesMap = new Map<string, number>()
+    const submittedSet = new Set<string>()
+    const gradesMap = new Map<string, number>()
 
     const { data: submissions, error: submissionsError } = await supabase
       .from('assignment_submissions')
@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
       status: submittedSet.has(assignment.id)
         ? 'submitted'
         : 'not_submitted',
-      score: gradesMap.get(assignment.id) || null
+      score: gradesMap.has(assignment.id) ? gradesMap.get(assignment.id) : null
     }))
 
     return NextResponse.json(normalized)
@@ -128,6 +128,24 @@ export async function POST(request: NextRequest) {
         { error: 'Módulo de simulador inválido' },
         { status: 400 }
       )
+    }
+
+    if (due_date) {
+      const parsedDueDate = new Date(due_date)
+
+      if (Number.isNaN(parsedDueDate.getTime())) {
+        return NextResponse.json(
+          { error: 'La fecha de entrega no es válida' },
+          { status: 400 }
+        )
+      }
+
+      if (parsedDueDate.getTime() < Date.now()) {
+        return NextResponse.json(
+          { error: 'La fecha de entrega no puede estar en el pasado' },
+          { status: 400 }
+        )
+      }
     }
 
     const supabase = await createClient()

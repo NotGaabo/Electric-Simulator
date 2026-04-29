@@ -7,6 +7,22 @@ import Link from 'next/link';
 
 type Step = 'initial' | 'details';
 
+const GOOGLE_OAUTH_SCOPES = [
+  'openid',
+  'https://www.googleapis.com/auth/userinfo.email',
+  'https://www.googleapis.com/auth/userinfo.profile',
+].join(' ');
+
+function getGoogleOAuthOptions(next = '/mis-clases') {
+  const callbackUrl = new URL('/auth/callback', window.location.origin);
+  callbackUrl.searchParams.set('next', next);
+
+  return {
+    redirectTo: callbackUrl.toString(),
+    scopes: GOOGLE_OAUTH_SCOPES,
+  };
+}
+
 export default function SignUpPage() {
   const [step, setStep] = useState<Step>('initial');
   const [email, setEmail] = useState('');
@@ -67,7 +83,10 @@ export default function SignUpPage() {
   const handleGoogleSignup = async () => {
     setIsLoading(true); setError('');
     try {
-      const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${location.origin}/mis-clases` } });
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: getGoogleOAuthOptions('/mis-clases'),
+      });
       if (error) throw error;
     } catch (err: any) { setError(err.message); setIsLoading(false); }
   };

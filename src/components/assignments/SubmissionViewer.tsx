@@ -1,15 +1,20 @@
 'use client'
 
-import { AssignmentSubmission } from '@/types/assignments'
+import { AssignmentSubmission, SavedAssignmentGrade } from '@/types/assignments'
 import { formatDate } from '@/utils/dateFormat'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 interface Props {
   submission: AssignmentSubmission
   assignmentId: string
   totalPoints?: number | null
   onClose: () => void
-  onGradeSubmit?: (submission_id: string, assignment_id: string, score: number, feedback: string) => Promise<void>
+  onGradeSubmit?: (
+    submission_id: string,
+    assignment_id: string,
+    score: number,
+    feedback: string
+  ) => Promise<SavedAssignmentGrade>
   isTeacher?: boolean
 }
 
@@ -26,19 +31,62 @@ export default function SubmissionViewer({
   const [submitting, setSubmitting] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [validationError, setValidationError] = useState<string | null>(null)
+
+  const hasExistingGrade = submission.score !== null && submission.score !== undefined
+  const maxScore = typeof totalPoints === 'number' && Number.isFinite(totalPoints) ? totalPoints : 100
+  const scoreLabel = typeof totalPoints === 'number' ? ` / ${totalPoints}` : ''
+
+  useEffect(() => {
+    setScore(submission.score?.toString() || '')
+    setFeedback(submission.feedback || '')
+    setSubmitting(false)
+    setIsSaved(false)
+    setError(null)
+    setValidationError(null)
+  }, [submission])
+
+  const getScoreValidationError = (value: string) => {
+    if (!value.trim()) return null
+
+    const numericScore = Number(value)
+    if (!Number.isFinite(numericScore)) {
+      return 'Debes ingresar una puntuación válida'
+    }
+
+    if (numericScore < 0) {
+      return 'La puntuación no puede ser negativa'
+    }
+
+    if (numericScore > maxScore) {
+      return `La puntuación no puede ser mayor que ${maxScore}`
+    }
+
+    return null
+  }
 
   const handleGradeSubmit = async () => {
-    if (!onGradeSubmit || !score) {
+    if (hasExistingGrade) {
+      setError('Esta entrega ya fue calificada y no se puede modificar')
+      return
+    }
+
+    if (!onGradeSubmit || !score.trim()) {
       setError('Debes ingresar una puntuación')
+      return
+    }
+
+    const nextValidationError = getScoreValidationError(score)
+    if (nextValidationError) {
+      setValidationError(nextValidationError)
       return
     }
     
     try {
       setSubmitting(true)
       setError(null)
-      console.log('Guardando calificación:', { submission_id: submission.id, assignment_id: assignmentId, score: parseInt(score), feedback })
       
-      await onGradeSubmit(submission.id, assignmentId, parseInt(score), feedback)
+      await onGradeSubmit(submission.id, assignmentId, Number(score), feedback)
       
       setIsSaved(true)
       setTimeout(() => {
@@ -53,6 +101,15 @@ export default function SubmissionViewer({
       setSubmitting(false)
     }
   }
+
+  const handleScoreChange = (value: string) => {
+    setScore(value)
+    setError(null)
+    setValidationError(getScoreValidationError(value))
+  }
+
+  const isScoreLocked = hasExistingGrade
+  const isSaveDisabled = submitting || isScoreLocked || !score.trim() || !!validationError
 
   return (
     <div style={{
@@ -209,38 +266,54 @@ export default function SubmissionViewer({
                   display: 'block',
                   marginBottom: 8,
                 }}>
-                  Puntuación {score ? `${score} / ${totalPoints}` : `/ ${totalPoints}`}
+                  Puntuación {score ? `${score}${scoreLabel}` : scoreLabel}
                 </label>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <input
                     type="number"
+                    step="1"
                     min="0"
-                    max={totalPoints || 100}
+                    max={maxScore}
                     value={score}
-                    onChange={(e) => setScore(e.target.value)}
+                    onChange={(e) => handleScoreChange(e.target.value)}
                     placeholder="0"
+                    readOnly={isScoreLocked}
                     disabled={submitting}
                     style={{
                       flex: 1,
                       padding: '10px 14px',
-                      border: '1.5px solid #dcfce7',
+                      border: `1.5px solid ${validationError ? '#fca5a5' : '#dcfce7'}`,
                       borderRadius: 10,
                       fontFamily: "'DM Sans', sans-serif",
                       fontSize: '0.875rem',
                       color: '#0f172a',
                       outline: 'none',
                       transition: 'border-color 0.2s, box-shadow 0.2s',
+                      background: isScoreLocked ? '#f8fafc' : '#ffffff',
+                      cursor: isScoreLocked ? 'default' : 'text',
                     }}
                     onFocus={(e) => {
+                      if (isScoreLocked || validationError) return
                       e.target.style.borderColor = '#22c55e'
                       e.target.style.boxShadow = '0 0 0 3px rgba(34,197,94,0.10)'
                     }}
                     onBlur={(e) => {
-                      e.target.style.borderColor = '#dcfce7'
+                      e.target.style.borderColor = validationError ? '#fca5a5' : '#dcfce7'
                       e.target.style.boxShadow = 'none'
                     }}
                   />
                 </div>
+                {isScoreLocked && (
+                  <p style={{
+                    marginTop: 8,
+                    fontFamily: "'Space Mono', monospace",
+                    fontSize: '0.65rem',
+                    color: '#64748b',
+                    letterSpacing: '0.04em',
+                  }}>
+                    La nota ya fue registrada y quedó en solo lectura.
+                  </p>
+                )}
               </div>
 
               {/* Feedback textarea */}
@@ -259,6 +332,7 @@ export default function SubmissionViewer({
                   value={feedback}
                   onChange={(e) => setFeedback(e.target.value)}
                   placeholder="Añade comentarios sobre la entrega..."
+                  readOnly={isScoreLocked}
                   disabled={submitting}
                   style={{
                     flex: 1,
@@ -271,8 +345,10 @@ export default function SubmissionViewer({
                     outline: 'none',
                     resize: 'none',
                     transition: 'border-color 0.2s, box-shadow 0.2s',
+                    background: isScoreLocked ? '#f8fafc' : '#ffffff',
                   }}
                   onFocus={(e) => {
+                    if (isScoreLocked) return
                     e.currentTarget.style.borderColor = '#22c55e'
                     e.currentTarget.style.boxShadow = '0 0 0 3px rgba(34,197,94,0.10)'
                   }}
@@ -284,7 +360,7 @@ export default function SubmissionViewer({
               </div>
 
               {/* Error message */}
-              {error && (
+              {(validationError || error) && (
                 <div style={{
                   padding: '12px 14px',
                   background: '#fee2e2',
@@ -294,7 +370,7 @@ export default function SubmissionViewer({
                   fontSize: '0.8125rem',
                   color: '#991b1b',
                 }}>
-                  ⚠️ {error}
+                  ⚠️ {validationError || error}
                 </div>
               )}
 
@@ -322,7 +398,7 @@ export default function SubmissionViewer({
                 </button>
                 <button
                   onClick={handleGradeSubmit}
-                  disabled={submitting || !score}
+                  disabled={isSaveDisabled}
                   style={{
                     flex: 1,
                     padding: '10px 14px',
@@ -335,13 +411,13 @@ export default function SubmissionViewer({
                     fontSize: '0.8125rem',
                     fontWeight: 600,
                     color: '#ffffff',
-                    cursor: submitting || !score ? 'not-allowed' : 'pointer',
+                    cursor: isSaveDisabled ? 'not-allowed' : 'pointer',
                     boxShadow: '0 2px 8px rgba(34,197,94,0.25)',
                     transition: 'all 0.2s',
-                    opacity: submitting || !score ? 0.6 : 1,
+                    opacity: isSaveDisabled ? 0.6 : 1,
                   }}
                 >
-                  {isSaved ? '✓ Guardado' : submitting ? 'Guardando...' : 'Guardar'}
+                  {isSaved ? '✓ Guardado' : isScoreLocked ? 'Ya calificada' : submitting ? 'Guardando...' : 'Guardar'}
                 </button>
               </div>
             </div>

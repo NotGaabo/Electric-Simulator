@@ -32,7 +32,7 @@ export async function POST(
     // Verify that user is a teacher in this assignment's class
     const { data: assignment } = await supabase
       .from('assignments')
-      .select('class_id')
+      .select('class_id, points')
       .eq('id', assignmentId)
       .single()
 
@@ -57,6 +57,13 @@ export async function POST(
       )
     }
 
+    if (typeof assignment.points === 'number' && score > assignment.points) {
+      return NextResponse.json(
+        { error: `La puntuación no puede ser mayor que ${assignment.points}` },
+        { status: 400 }
+      )
+    }
+
     // Verify submission exists
     const { data: submission } = await supabase
       .from('assignment_submissions')
@@ -72,26 +79,54 @@ export async function POST(
       )
     }
 
-    // Update submission with grade
-    const { error: updateError } = await supabase
-      .from('assignment_submissions')
-      .update({
-        score,
-        feedback: feedback || null,
-        graded_at: new Date().toISOString(),
-        graded_by: user.id
-      })
-      .eq('id', submissionId)
+    // Save grade in the dedicated grades table
+    const { data: existingGrade, error: gradeFetchError } = await supabase
+      .from('assignment_submissions_grades')
+      .select('id')
+      .eq('submission_id', submissionId)
+      .maybeSingle()
 
-    if (updateError) {
-      console.error('Error updating grade:', updateError)
+    if (gradeFetchError) {
+      console.error('Error fetching existing grade:', gradeFetchError)
       return NextResponse.json(
-        { error: 'No se pudo guaard la calificación' },
+        { error: 'No se pudo verificar la calificación' },
         { status: 500 }
       )
     }
 
-    return NextResponse.json({ success: true })
+    if (existingGrade) {
+      return NextResponse.json(
+        { error: 'Esta entrega ya fue calificada y no se puede modificar' },
+        { status: 409 }
+      )
+    }
+
+    const gradedAt = new Date().toISOString()
+    const { data: insertedGrade, error: insertError } = await supabase
+      .from('assignment_submissions_grades')
+        .insert({
+          submission_id: submissionId,
+          assignment_id: assignmentId,
+          teacher_id: user.id,
+          score,
+          feedback: feedback || null,
+          graded_at: gradedAt,
+        })
+        .select('score, feedback, graded_at')
+        .single()
+
+    if (insertError || !insertedGrade) {
+      console.error('Error inserting grade:', insertError)
+      return NextResponse.json(
+        { error: 'No se pudo guardar la calificación' },
+        { status: 500 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      grade: insertedGrade
+    })
 
   } catch (error) {
     console.error('Server error:', error)

@@ -5,6 +5,21 @@ import { useAssignmentsList } from '@/hooks/useAssignmentsList'
 import { SIMULATOR_MODULES, getSimulatorModuleById } from '@/lib/simulatorModules'
 import type { SimulatorModuleId } from '@/lib/simulatorModules'
 
+const padDatePart = (value: number) => value.toString().padStart(2, '0')
+
+const formatDateInputValue = (date: Date) => {
+  const year = date.getFullYear()
+  const month = padDatePart(date.getMonth() + 1)
+  const day = padDatePart(date.getDate())
+  return `${year}-${month}-${day}`
+}
+
+const formatTimeInputValue = (date: Date) => {
+  const hours = padDatePart(date.getHours())
+  const minutes = padDatePart(date.getMinutes())
+  return `${hours}:${minutes}`
+}
+
 export default function AssignmentsListPage() {
   const {
     assignments,
@@ -26,14 +41,52 @@ export default function AssignmentsListPage() {
   const [moduleId, setModuleId]       = useState(SIMULATOR_MODULES[0]?.id ?? 'circuit')
   const [points, setPoints]           = useState<number | ''>(100)
   const [submitting, setSubmitting]   = useState(false)
+  const [dateError, setDateError]     = useState<string | null>(null)
+
+  const now = new Date()
+  const minDueDate = formatDateInputValue(now)
+  const minDueTime = dueDate === minDueDate ? formatTimeInputValue(now) : ''
 
   const buildDueDateValue = () => {
     if (!dueDate) return null
     return dueTime ? `${dueDate}T${dueTime}` : dueDate
   }
 
+  const validateDueDate = () => {
+    if (!dueDate) {
+      setDateError(null)
+      return true
+    }
+
+    if (dueDate < minDueDate) {
+      setDateError('La fecha de entrega no puede ser anterior a hoy.')
+      return false
+    }
+
+    if (dueDate === minDueDate) {
+      if (!dueTime) {
+        setDateError('Si eliges hoy, debes indicar una hora actual o futura.')
+        return false
+      }
+
+      if (dueTime < minDueTime) {
+        setDateError('La hora de entrega para hoy debe ser la actual o una futura.')
+        return false
+      }
+    }
+
+    setDateError(null)
+    return true
+  }
+
+  const hasInvalidDueDate =
+    !!dueDate &&
+    (dueDate < minDueDate ||
+      (dueDate === minDueDate && (!dueTime || dueTime < minDueTime)))
+
   const createAssignment = async () => {
     if (!title.trim() || !classId) return
+    if (!validateDueDate()) return
     setSubmitting(true)
     try {
       const res = await fetch('/api/assignments', {
@@ -50,7 +103,7 @@ export default function AssignmentsListPage() {
       })
       const data = await res.json()
       if (!res.ok) { alert(data.error || 'Error al crear la asignación'); return }
-      setTitle(''); setDescription(''); setDueDate(''); setDueTime(''); setPoints(100)
+      setTitle(''); setDescription(''); setDueDate(''); setDueTime(''); setPoints(100); setDateError(null)
       await fetchAssignments()
     } catch (err) {
       console.error(err)
@@ -317,7 +370,7 @@ export default function AssignmentsListPage() {
             <div>
               <h1 className="asgn-title">Trabajo de <strong>clase</strong></h1>
               <p className="asgn-count">
-                // {assignments.length} {assignments.length === 1 ? 'asignación' : 'asignaciones'}
+                {'//'} {assignments.length} {assignments.length === 1 ? 'asignación' : 'asignaciones'}
               </p>
             </div>
           </div>
@@ -325,7 +378,7 @@ export default function AssignmentsListPage() {
           {/* Form profesor */}
           {!roleLoading && role === 'teacher' && (
             <div className="asgn-form">
-              <p className="asgn-form-title">// crear asignación</p>
+              <p className="asgn-form-title">{'// crear asignación'}</p>
               <div className="asgn-form-grid">
                 <input
                   className="asgn-input"
@@ -344,16 +397,48 @@ export default function AssignmentsListPage() {
                   <input
                     className="asgn-input"
                     type="date"
+                    min={minDueDate}
                     value={dueDate}
-                    onChange={(e) => setDueDate(e.target.value)}
+                    onChange={(e) => {
+                      const nextDate = e.target.value
+                      setDueDate(nextDate)
+                      if (nextDate !== minDueDate) {
+                        setDateError(null)
+                        return
+                      }
+                      if (dueTime && dueTime < minDueTime) {
+                        setDueTime('')
+                      }
+                      setDateError(null)
+                    }}
                   />
                   <input
                     className="asgn-input"
                     type="time"
+                    min={dueDate === minDueDate ? minDueTime : undefined}
                     value={dueTime}
-                    onChange={(e) => setDueTime(e.target.value)}
+                    onChange={(e) => {
+                      const nextTime = e.target.value
+                      setDueTime(nextTime)
+                      if (dueDate === minDueDate && nextTime && nextTime < minDueTime) {
+                        setDateError('La hora de entrega para hoy debe ser la actual o una futura.')
+                        return
+                      }
+                      setDateError(null)
+                    }}
+                    disabled={!dueDate}
                   />
                 </div>
+                {dateError && (
+                  <p style={{
+                    margin: 0,
+                    fontSize: '0.8125rem',
+                    color: '#b91c1c',
+                    fontWeight: 500,
+                  }}>
+                    {dateError}
+                  </p>
+                )}
                 <div className="asgn-form-row">
                   <select
                     className="asgn-select"
@@ -380,7 +465,7 @@ export default function AssignmentsListPage() {
                 <button
                   className="asgn-btn-create"
                   onClick={createAssignment}
-                  disabled={submitting || !title.trim()}
+                  disabled={submitting || !title.trim() || hasInvalidDueDate}
                 >
                   {submitting ? 'Creando...' : 'Crear asignación →'}
                 </button>
@@ -392,7 +477,7 @@ export default function AssignmentsListPage() {
           {loading ? (
             <div className="asgn-loading">
               <div className="asgn-spin" />
-              <p className="asgn-loading-label">// cargando asignaciones...</p>
+              <p className="asgn-loading-label">{'// cargando asignaciones...'}</p>
             </div>
 
           ) : error ? (

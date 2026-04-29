@@ -5,6 +5,7 @@ interface Class {
   id: string
   name: string
   description: string
+  code?: string
   created_at: string
   my_role?: string        // 'teacher' | 'student'
   progress?: number       // 0–100, solo relevante para estudiantes
