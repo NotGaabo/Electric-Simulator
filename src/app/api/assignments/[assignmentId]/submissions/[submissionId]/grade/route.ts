@@ -32,7 +32,7 @@ export async function POST(
     // Verify that user is a teacher in this assignment's class
     const { data: assignment } = await supabase
       .from('assignments')
-      .select('class_id')
+      .select('class_id, points')
       .eq('id', assignmentId)
       .single()
 
@@ -54,6 +54,13 @@ export async function POST(
       return NextResponse.json(
         { error: 'No tienes permiso para calificar' },
         { status: 403 }
+      )
+    }
+
+    if (typeof assignment.points === 'number' && score > assignment.points) {
+      return NextResponse.json(
+        { error: `La puntuación no puede ser mayor que ${assignment.points}` },
+        { status: 400 }
       )
     }
 
@@ -88,44 +95,38 @@ export async function POST(
     }
 
     if (existingGrade) {
-      const { error: updateError } = await supabase
-        .from('assignment_submissions_grades')
-        .update({
-          score,
-          feedback: feedback || null,
-          graded_at: new Date().toISOString(),
-        })
-        .eq('submission_id', submissionId)
+      return NextResponse.json(
+        { error: 'Esta entrega ya fue calificada y no se puede modificar' },
+        { status: 409 }
+      )
+    }
 
-      if (updateError) {
-        console.error('Error updating grade:', updateError)
-        return NextResponse.json(
-          { error: 'No se pudo guardar la calificación' },
-          { status: 500 }
-        )
-      }
-    } else {
-      const { error: insertError } = await supabase
-        .from('assignment_submissions_grades')
+    const gradedAt = new Date().toISOString()
+    const { data: insertedGrade, error: insertError } = await supabase
+      .from('assignment_submissions_grades')
         .insert({
           submission_id: submissionId,
           assignment_id: assignmentId,
           teacher_id: user.id,
           score,
           feedback: feedback || null,
-          graded_at: new Date().toISOString(),
+          graded_at: gradedAt,
         })
+        .select('score, feedback, graded_at')
+        .single()
 
-      if (insertError) {
-        console.error('Error inserting grade:', insertError)
-        return NextResponse.json(
-          { error: 'No se pudo guardar la calificación' },
-          { status: 500 }
-        )
-      }
+    if (insertError || !insertedGrade) {
+      console.error('Error inserting grade:', insertError)
+      return NextResponse.json(
+        { error: 'No se pudo guardar la calificación' },
+        { status: 500 }
+      )
     }
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({
+      success: true,
+      grade: insertedGrade
+    })
 
   } catch (error) {
     console.error('Server error:', error)

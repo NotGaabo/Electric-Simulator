@@ -68,6 +68,10 @@ export async function GET(
       screenshot_path: string
       screenshot_url?: string | null
       submitted_at: string
+      score?: number | null
+      feedback?: string | null
+      graded_at?: string | null
+      graded_by?: string | null
     }> = []
 
     if (membership?.role === 'teacher') {
@@ -81,7 +85,14 @@ export async function GET(
         console.error('Error fetching submissions:', submissionsError)
       } else if (rows) {
         const studentIds = rows.map((row) => row.student_id)
+        const submissionIds = rows.map((row) => row.id)
         const profilesMap = new Map<string, { full_name?: string | null; email?: string | null }>()
+        const gradesMap = new Map<string, {
+          score: number | null
+          feedback: string | null
+          graded_at: string | null
+          teacher_id: string | null
+        }>()
 
         if (studentIds.length > 0) {
           const { data: profiles, error: profilesError } = await supabase
@@ -94,6 +105,26 @@ export async function GET(
           } else if (profiles) {
             profiles.forEach((profile) => {
               profilesMap.set(profile.id, { full_name: profile.full_name, email: profile.email })
+            })
+          }
+        }
+
+        if (submissionIds.length > 0) {
+          const { data: grades, error: gradesError } = await supabase
+            .from('assignment_submissions_grades')
+            .select('submission_id, score, feedback, graded_at, teacher_id')
+            .in('submission_id', submissionIds)
+
+          if (gradesError) {
+            console.error('Grades lookup error:', gradesError)
+          } else if (grades) {
+            grades.forEach((grade) => {
+              gradesMap.set(grade.submission_id, {
+                score: grade.score,
+                feedback: grade.feedback,
+                graded_at: grade.graded_at,
+                teacher_id: grade.teacher_id,
+              })
             })
           }
         }
@@ -131,10 +162,15 @@ export async function GET(
               profile?.email?.trim() ||
               'Estudiante'
             const displayName = rawName.includes('@') ? normalizeName(rawName) || 'Estudiante' : rawName
+            const existingGrade = gradesMap.get(row.id)
             return {
               ...row,
               student_name: displayName,
-              screenshot_url: signedUrl
+              screenshot_url: signedUrl,
+              score: existingGrade?.score ?? null,
+              feedback: existingGrade?.feedback ?? null,
+              graded_at: existingGrade?.graded_at ?? null,
+              graded_by: existingGrade?.teacher_id ?? null,
             }
           })
         )

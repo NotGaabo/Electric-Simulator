@@ -7,6 +7,10 @@ export function createClient() {
 
   return createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    publishableKey!
+    publishableKey!, {
+      auth: {
+        flowType: 'implicit', 
+      }
+    }
   )
 }

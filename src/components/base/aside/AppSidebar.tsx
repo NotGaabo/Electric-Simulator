@@ -7,26 +7,28 @@ interface Assignment {
   status?: string
 }
 
+type SidebarItemKey =
+  | 'mis-clases'
+  | 'tareas'
+  | 'calendario'
+  | 'calificaciones'
+  | 'students'
+
 interface AppSidebarProps {
-  /** Assignments array used to show quick stats. Pass [] if not applicable. */
   assignments?: Assignment[]
-  /** Optional active nav key. Defaults to auto-detect via pathname. */
-  activeItem?: 'dashboard' | 'clases' | 'tareas' | 'calendario' | 'calificaciones' | 'estudiantes' | 'students'
+  activeItem?: SidebarItemKey
 }
 
-const NAV_ITEMS = [
+const NAV_ITEMS: Array<{
+  key: 'mis-clases' | 'tareas' | 'calendario'
+  label: string
+  href: string | null
+  icon: React.ReactNode
+}> = [
   {
-    key: 'dashboard',
-    label: 'Dashboard',
-    href: '/mis-clases',
-    icon: (
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-    ),
-  },
-  {
-    key: 'clases',
+    key: 'mis-clases',
     label: 'Mis Clases',
-    href: '/classes',
+    href: '/mis-clases',
     icon: (
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
     ),
@@ -49,7 +51,12 @@ const NAV_ITEMS = [
   },
 ]
 
-const PROGRESS_ITEMS = [
+const PROGRESS_ITEMS: Array<{
+  key: 'calificaciones' | 'students'
+  label: string
+  href: string | null
+  icon: React.ReactNode
+}> = [
   {
     key: 'calificaciones',
     label: 'Calificaciones',
@@ -76,7 +83,7 @@ export default function AppSidebar({ assignments = [], activeItem }: AppSidebarP
 
   const navItems = NAV_ITEMS.map((item) => {
     if (item.key === 'tareas') {
-      return { ...item, href: classId ? `/classes/${classId}` : '/classes' }
+      return { ...item, href: classId ? `/classes/${classId}` : '/mis-clases' }
     }
     if (item.key === 'calendario') {
       return { ...item, href: classId ? `/classes/${classId}/calendario` : '/mis-clases/calendario' }
@@ -95,14 +102,11 @@ export default function AppSidebar({ assignments = [], activeItem }: AppSidebarP
     return item
   })
 
-  const isActive = (key: string) => {
+  const isActive = (key: SidebarItemKey) => {
     if (activeItem) return activeItem === key
 
-    if (key === 'dashboard') {
+    if (key === 'mis-clases') {
       return pathname === '/mis-clases'
-    }
-    if (key === 'clases') {
-      return pathname === '/classes'
     }
     if (key === 'tareas') {
       return /^\/classes\/[^/]+$/.test(pathname)
@@ -243,10 +247,8 @@ export default function AppSidebar({ assignments = [], activeItem }: AppSidebarP
       `}</style>
 
       <div className="app-sidebar">
-
-        {/* Principal */}
         <div className="app-sidebar-section">
-          <div className="app-sidebar-label">// principal</div>
+          <div className="app-sidebar-label">{'// principal'}</div>
 
           {navItems.map((item) => (
             <button
@@ -262,9 +264,8 @@ export default function AppSidebar({ assignments = [], activeItem }: AppSidebarP
           ))}
         </div>
 
-        {/* Progreso */}
         <div className="app-sidebar-section">
-          <div className="app-sidebar-label">// progreso</div>
+          <div className="app-sidebar-label">{'// progreso'}</div>
 
           {progressItems.map((item) => (
             <button
@@ -280,7 +281,6 @@ export default function AppSidebar({ assignments = [], activeItem }: AppSidebarP
           ))}
         </div>
 
-        {/* Quick stats */}
         {assignments.length > 0 && (
           <div className="app-sidebar-stats">
             <div className="app-sidebar-stats-title">Esta clase</div>
@@ -292,7 +292,7 @@ export default function AppSidebar({ assignments = [], activeItem }: AppSidebarP
             <div className="app-sidebar-stats-row">
               <span className="app-sidebar-stats-label">Entregadas</span>
               <span className="app-sidebar-stats-value" style={{ color: '#059669' }}>
-                {assignments.filter(a => a.status === 'submitted').length}
+                {assignments.filter((assignment) => assignment.status === 'submitted').length}
               </span>
             </div>
           </div>

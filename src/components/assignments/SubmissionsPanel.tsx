@@ -1,20 +1,70 @@
 'use client'
 
-import { AssignmentSubmission } from '@/types/assignments'
+import { AssignmentSubmission, SavedAssignmentGrade } from '@/types/assignments'
 import { formatDate } from '@/utils/dateFormat'
 import SubmissionViewer from './SubmissionViewer'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 interface Props {
   submissions: AssignmentSubmission[]
   assignmentId: string
   totalPoints?: number | null
-  onGradeSubmit?: (submission_id: string, assignment_id: string, score: number, feedback: string) => Promise<void>
+  onGradeSubmit?: (
+    submission_id: string,
+    assignment_id: string,
+    score: number,
+    feedback: string
+  ) => Promise<SavedAssignmentGrade>
   isTeacher?: boolean
 }
 
 export default function SubmissionsPanel({ submissions, assignmentId, totalPoints, onGradeSubmit, isTeacher = false }: Props) {
+  const [submissionList, setSubmissionList] = useState<AssignmentSubmission[]>(submissions)
   const [selectedSubmission, setSelectedSubmission] = useState<AssignmentSubmission | null>(null)
+  const pointsSuffix = typeof totalPoints === 'number' ? ` / ${totalPoints}` : ''
+
+  useEffect(() => {
+    setSubmissionList(submissions)
+  }, [submissions])
+
+  const handleGradeSubmit = async (
+    submissionId: string,
+    currentAssignmentId: string,
+    score: number,
+    feedback: string
+  ) => {
+    if (!onGradeSubmit) {
+      throw new Error('No hay una acción de guardado disponible')
+    }
+
+    const savedGrade = await onGradeSubmit(submissionId, currentAssignmentId, score, feedback)
+
+    setSubmissionList((prev) =>
+      prev.map((item) =>
+        item.id === submissionId
+          ? {
+              ...item,
+              score: savedGrade.score,
+              feedback: savedGrade.feedback,
+              graded_at: savedGrade.graded_at,
+            }
+          : item
+      )
+    )
+
+    setSelectedSubmission((prev) =>
+      prev && prev.id === submissionId
+        ? {
+            ...prev,
+            score: savedGrade.score,
+            feedback: savedGrade.feedback,
+            graded_at: savedGrade.graded_at,
+          }
+        : prev
+    )
+
+    return savedGrade
+  }
 
   return (
     <div id="entregas" style={{
@@ -38,7 +88,7 @@ export default function SubmissionsPanel({ submissions, assignmentId, totalPoint
           <p style={{
             fontFamily: "'Space Mono', monospace",
             fontSize: '0.6rem', color: '#94a3b8', letterSpacing: '0.08em',
-          }}>// estudiantes que entregaron</p>
+          }}>{'// estudiantes que entregaron'}</p>
         </div>
         <span style={{
           fontFamily: "'Space Mono', monospace",
@@ -47,12 +97,12 @@ export default function SubmissionsPanel({ submissions, assignmentId, totalPoint
           background: 'rgba(34,197,94,0.08)', border: '1px solid #bbf7d0',
           padding: '4px 10px', borderRadius: 100,
         }}>
-          {submissions.length}
+          {submissionList.length}
         </span>
       </div>
 
       <div style={{ padding: '16px 20px' }}>
-        {submissions.length === 0 ? (
+        {submissionList.length === 0 ? (
           <div style={{
             padding: '32px 0', textAlign: 'center',
           }}>
@@ -65,11 +115,11 @@ export default function SubmissionsPanel({ submissions, assignmentId, totalPoint
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
-            <p style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.65rem', color: '#94a3b8', letterSpacing: '0.08em' }}>// sin entregas aún</p>
+            <p style={{ fontFamily: "'Space Mono', monospace", fontSize: '0.65rem', color: '#94a3b8', letterSpacing: '0.08em' }}>{'// sin entregas aún'}</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {submissions.map((submission) => (
+            {submissionList.map((submission) => (
               <div key={submission.id} style={{
                 display: 'flex', alignItems: 'center', gap: 14,
                 padding: '12px 14px',
@@ -112,6 +162,17 @@ export default function SubmissionsPanel({ submissions, assignmentId, totalPoint
                   }}>
                     {formatDate(submission.submitted_at)}
                   </p>
+                  {submission.score !== null && submission.score !== undefined && (
+                    <p style={{
+                      fontFamily: "'Space Mono', monospace",
+                      fontSize: '0.6rem',
+                      color: '#15803d',
+                      letterSpacing: '0.06em',
+                      marginTop: 4,
+                    }}>
+                      Nota registrada: {submission.score}{pointsSuffix}
+                    </p>
+                  )}
                 </div>
 
                 {/* Action */}
@@ -155,7 +216,7 @@ export default function SubmissionsPanel({ submissions, assignmentId, totalPoint
           totalPoints={totalPoints}
           isTeacher={isTeacher}
           onClose={() => setSelectedSubmission(null)}
-          onGradeSubmit={onGradeSubmit}
+          onGradeSubmit={handleGradeSubmit}
         />
       )}
     </div>

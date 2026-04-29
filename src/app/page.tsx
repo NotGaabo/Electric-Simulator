@@ -190,7 +190,7 @@ export default function HomePage() {
 
       <footer>
         <span className="footer-text">© 2026 Voltify. All rights reserved.</span>
-        <span className="footer-mono">v2.0 · SPICE Engine</span>
+        <span className="footer-mono">v2.0 · LMS</span>
       </footer>
     </>
   )
