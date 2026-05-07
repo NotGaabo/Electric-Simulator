@@ -284,17 +284,6 @@ export default function AppHeader({
             </div>
           </div>
 
-          {/* Center: Search */}
-          <div className="app-header-search">
-            <div className="app-header-search-left">
-              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              Buscar...
-            </div>
-            <span className="app-header-search-kbd">⌘K</span>
-          </div>
-
           {/* Right: Notifications + Nueva + Avatar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { getAuthCallbackUrl } from '@/lib/app-url'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
@@ -12,11 +13,8 @@ const GOOGLE_OAUTH_SCOPES = [
 ].join(' ')
 
 function getGoogleOAuthOptions(next = '/mis-clases') {
-  const callbackUrl = new URL('/auth/callback', window.location.origin)
-  callbackUrl.searchParams.set('next', next)
-
   return {
-    redirectTo: callbackUrl.toString(),
+    redirectTo: getAuthCallbackUrl(next, window.location.origin),
     scopes: GOOGLE_OAUTH_SCOPES,
   }
 }
@@ -529,7 +527,7 @@ export default function LoginPage() {
         {/* ── RIGHT PANEL ── */}
         <div className="right-panel">
           <img
-            src="https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=1200&q=80"
+            src="/auth/auth-cover.jpg"
             alt="Background"
           />
           <div className="right-overlay" />

@@ -14,6 +14,7 @@ export function SensorSimulation() {
     startSimulation,
     stopSimulation,
     resetSimulation,
+    loadScenario,
     addNode,
     moveNode,
     removeNode,
@@ -43,12 +44,15 @@ export function SensorSimulation() {
     >
       <ControlPanel
         running={state.running}
+        nodes={state.nodes}
+        wires={state.wires}
         onStart={startSimulation}
         onStop={stopSimulation}
         onReset={resetSimulation}
+        onLoadScenario={loadScenario}
       />
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-        <Palette onAddNode={addNode} />
+        <Palette />
         <Canvas
           nodes={state.nodes}
           wires={state.wires}

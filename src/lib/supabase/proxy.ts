@@ -14,6 +14,9 @@ export async function updateSession(request: NextRequest) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     publishableKey!,
     {
+      auth: {
+        flowType: 'pkce',
+      },
       cookies: {
         getAll() {
           return request.cookies.getAll()
@@ -32,7 +35,15 @@ export async function updateSession(request: NextRequest) {
   )
 
   // refreshing the auth token
-  await supabase.auth.getUser()
+  try {
+    await supabase.auth.getUser()
+  } catch (error) {
+    const authError = error as { code?: string }
+
+    if (authError?.code !== 'refresh_token_not_found') {
+      console.error('Unexpected auth session refresh error', error)
+    }
+  }
 
   return supabaseResponse
 }

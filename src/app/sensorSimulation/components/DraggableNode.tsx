@@ -27,6 +27,12 @@ function NodeIcon({ node }: { node: AutomationNode }) {
       );
     case "selector":
       return <div className="text-2xl">🔘</div>;
+    case "relay":
+      return (
+        <div className={`text-2xl ${node.contactClosed ? "drop-shadow-[0_0_6px_#60a5fa]" : "opacity-70"}`}>
+          🔌
+        </div>
+      );
     case "contactor":
       return (
         <div className={`text-2xl ${node.coil ? "drop-shadow-[0_0_6px_#facc15]" : "opacity-60"}`}>
@@ -111,6 +117,57 @@ function NodeLabel({ node }: { node: AutomationNode }) {
       );
     case "motor":
       return <span className={`text-[9px] font-mono ${node.active ? "text-green-400" : "text-gray-500"}`}>{node.active ? "RUN" : "STOP"}</span>;
+  }
+}
+
+function NodeTitle({ node }: { node: AutomationNode }) {
+  const fallback = {
+    sensor: "Sensor",
+    selector: "Selector",
+    relay: "Rele",
+    contactor: "Contactor",
+    timer: "Timer",
+    lamp: "Lampara",
+    motor: "Motor",
+  }[node.type];
+
+  return (
+    <span
+      style={{
+        position: "absolute",
+        top: 4,
+        left: 8,
+        right: 8,
+        textAlign: "center",
+        fontSize: 8,
+        color: "#94a3b8",
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        letterSpacing: "0.04em",
+      }}
+    >
+      {node.label ?? fallback}
+    </span>
+  );
+}
+
+function getAccent(node: AutomationNode) {
+  switch (node.type) {
+    case "sensor":
+      return "#60a5fa";
+    case "selector":
+      return "#c084fc";
+    case "relay":
+      return "#38bdf8";
+    case "contactor":
+      return "#facc15";
+    case "timer":
+      return "#fb7185";
+    case "lamp":
+      return "#fde047";
+    case "motor":
+      return "#4ade80";
   }
 }
 
@@ -210,10 +267,23 @@ export function DraggableNode({
         zIndex: dragging ? 50 : isSelected ? 40 : 10,
         transition: "all 0.15s",
         userSelect: "none",
+        overflow: "hidden",
       }}
       onMouseDown={handleMouseDown}
       onClick={handleClick}
     >
+      <div
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 3,
+          background: getAccent(node),
+          opacity: 0.9,
+        }}
+      />
+
       {isSelected && (
         <div
           style={{
@@ -241,6 +311,7 @@ export function DraggableNode({
       )}
 
       <NodeIcon node={node} />
+      <NodeTitle node={node} />
       <NodeLabel node={node} />
 
       {/* Botón conectar */}
@@ -267,7 +338,7 @@ export function DraggableNode({
           e.stopPropagation();
           onBeginConnect(node.id);
         }}
-        title="Conectar"
+        title="Conectar este nodo"
       >
         +
       </button>
@@ -296,7 +367,7 @@ export function DraggableNode({
           e.stopPropagation();
           onRemove(node.id);
         }}
-        title="Eliminar"
+        title="Eliminar este nodo"
       >
         ×
       </button>

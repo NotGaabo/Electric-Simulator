@@ -21,7 +21,7 @@ export async function createClient() {
     publishableKey!,
     {
       auth: {
-        flowType: 'implicit',
+        flowType: 'pkce',
       },
       cookies: {
         get(name: string) {

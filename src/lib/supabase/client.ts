@@ -9,7 +9,7 @@ export function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     publishableKey!, {
       auth: {
-        flowType: 'implicit', 
+        flowType: 'pkce',
       }
     }
   )

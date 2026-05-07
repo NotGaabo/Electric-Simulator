@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { getAppBaseUrl, getAuthCallbackUrl } from '@/lib/app-url';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 
@@ -14,11 +15,8 @@ const GOOGLE_OAUTH_SCOPES = [
 ].join(' ');
 
 function getGoogleOAuthOptions(next = '/mis-clases') {
-  const callbackUrl = new URL('/auth/callback', window.location.origin);
-  callbackUrl.searchParams.set('next', next);
-
   return {
-    redirectTo: callbackUrl.toString(),
+    redirectTo: getAuthCallbackUrl(next, window.location.origin),
     scopes: GOOGLE_OAUTH_SCOPES,
   };
 }
@@ -62,9 +60,10 @@ export default function SignUpPage() {
     if (password !== confirmPassword) { setError('Passwords do not match.'); return; }
     setIsLoading(true);
     try {
+      const emailRedirectTo = `${getAppBaseUrl(window.location.origin)}/mis-clases`
       const { data, error: signUpError } = await supabase.auth.signUp({
         email, password,
-        options: { emailRedirectTo: `${location.origin}/mis-clases`, data: { full_name: fullName } },
+        options: { emailRedirectTo, data: { full_name: fullName } },
       });
       if (signUpError) throw signUpError;
       if (data.user) {
@@ -94,7 +93,8 @@ export default function SignUpPage() {
   const handleFacebookSignup = async () => {
     setIsLoading(true); setError('');
     try {
-      const { error } = await supabase.auth.signInWithOAuth({ provider: 'facebook', options: { redirectTo: `${location.origin}/mis-clases` } });
+      const redirectTo = `${getAppBaseUrl(window.location.origin)}/mis-clases`
+      const { error } = await supabase.auth.signInWithOAuth({ provider: 'facebook', options: { redirectTo } });
       if (error) throw error;
     } catch (err: any) { setError(err.message); setIsLoading(false); }
   };
@@ -102,7 +102,8 @@ export default function SignUpPage() {
   const handleAppleSignup = async () => {
     setIsLoading(true); setError('');
     try {
-      const { error } = await supabase.auth.signInWithOAuth({ provider: 'apple', options: { redirectTo: `${location.origin}/mis-clases` } });
+      const redirectTo = `${getAppBaseUrl(window.location.origin)}/mis-clases`
+      const { error } = await supabase.auth.signInWithOAuth({ provider: 'apple', options: { redirectTo } });
       if (error) throw error;
     } catch (err: any) { setError(err.message); setIsLoading(false); }
   };
@@ -518,7 +519,7 @@ export default function SignUpPage() {
         {/* ── RIGHT PANEL ── */}
         <div className="right-panel">
           <img
-            src="https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=1200&q=80"
+            src="/auth/auth-cover.jpg"
             alt="Background"
           />
           <div className="right-overlay" />
