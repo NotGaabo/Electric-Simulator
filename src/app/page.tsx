@@ -111,7 +111,6 @@ export default function HomePage() {
           <p className="hero-sub">Un simulador electrico avanzado impulsado por IA. Disena, analiza y comprende circuitos mediante lenguaje natural e interaccion en tiempo real.</p>
           <div className="hero-actions">
             <button onClick={handleGoToPanel} className="btn-primary">Iniciar Voltify</button>
-            <button className="btn-secondary">Ver documentacion</button>
           </div>
           <div className="circuit-visual">
             <div className="circuit-label">// vista previa del circuito</div>
