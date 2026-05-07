@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   AutomationState,
   AutomationNode,
@@ -114,12 +114,180 @@ const INITIAL_STATE: AutomationState = {
   conditions: [],
 };
 
+type ScenarioKey = "pasillo" | "bomba" | "linea";
+
+function buildScenario(scenario: ScenarioKey): AutomationState {
+  if (scenario === "pasillo") {
+    return {
+      running: false,
+      conditions: [],
+      nodes: [
+        {
+          id: "sensor-pasillo",
+          type: "sensor",
+          label: "Sensor PIR",
+          position: { x: 120, y: 220 },
+          sensorType: "PIR",
+          motion: false,
+          onDurationMs: 5000,
+          onRemainingMs: 0,
+          prevMotion: false,
+          sensitivity: 75,
+          debounceMs: 100,
+          lastActivationTime: 0,
+        },
+        {
+          id: "lamp-pasillo",
+          type: "lamp",
+          label: "Luz pasillo",
+          position: { x: 420, y: 220 },
+          active: false,
+          powerW: 40,
+          operationalState: "off",
+        },
+      ],
+      wires: [{ id: "wire-pasillo-1", from: "sensor-pasillo", to: "lamp-pasillo" }],
+    };
+  }
+
+  if (scenario === "bomba") {
+    return {
+      running: false,
+      conditions: [],
+      nodes: [
+        {
+          id: "selector-bomba",
+          type: "selector",
+          label: "Modo",
+          position: { x: 100, y: 200 },
+          mode: "AUTO",
+          automaticEnabled: true,
+        },
+        {
+          id: "sensor-bomba",
+          type: "sensor",
+          label: "Nivel",
+          position: { x: 100, y: 330 },
+          sensorType: "pressure",
+          motion: false,
+          onDurationMs: 3000,
+          onRemainingMs: 0,
+          prevMotion: false,
+          sensitivity: 75,
+          debounceMs: 100,
+          lastActivationTime: 0,
+        },
+        {
+          id: "timer-bomba",
+          type: "timer",
+          label: "Retardo",
+          position: { x: 360, y: 330 },
+          input: false,
+          output: false,
+          timerType: "delay-on",
+          delayMs: 2000,
+          remainingMs: 0,
+        },
+        {
+          id: "contactor-bomba",
+          type: "contactor",
+          label: "Contactor",
+          position: { x: 360, y: 200 },
+          coil: false,
+          contactClosed: false,
+          maxCurrent: 50,
+          ratedVoltage: 220,
+          mainContacts: 3,
+          auxiliaryContact: false,
+          currentDetected: 0,
+        },
+        {
+          id: "motor-bomba",
+          type: "motor",
+          label: "Bomba",
+          position: { x: 620, y: 200 },
+          active: false,
+          powerHP: 1.5,
+          rpmNominal: 1800,
+          nominalCurrent: 5,
+          operationalState: "stopped",
+          runningTimeMs: 0,
+        },
+      ],
+      wires: [
+        { id: "wire-bomba-1", from: "selector-bomba", to: "contactor-bomba" },
+        { id: "wire-bomba-2", from: "sensor-bomba", to: "timer-bomba" },
+        { id: "wire-bomba-3", from: "timer-bomba", to: "contactor-bomba" },
+        { id: "wire-bomba-4", from: "contactor-bomba", to: "motor-bomba" },
+      ],
+    };
+  }
+
+  return {
+    running: false,
+    conditions: [],
+    nodes: [
+      {
+        id: "sensor-linea-1",
+        type: "sensor",
+        label: "Entrada A",
+        position: { x: 120, y: 180 },
+        sensorType: "ultrasonic",
+        motion: false,
+        onDurationMs: 1000,
+        onRemainingMs: 0,
+        prevMotion: false,
+        sensitivity: 75,
+        debounceMs: 100,
+        lastActivationTime: 0,
+      },
+      {
+        id: "sensor-linea-2",
+        type: "sensor",
+        label: "Entrada B",
+        position: { x: 120, y: 330 },
+        sensorType: "thermal",
+        motion: false,
+        onDurationMs: 1000,
+        onRemainingMs: 0,
+        prevMotion: false,
+        sensitivity: 75,
+        debounceMs: 100,
+        lastActivationTime: 0,
+      },
+      {
+        id: "relay-linea",
+        type: "relay",
+        label: "Relé OR",
+        position: { x: 390, y: 255 },
+        coil: false,
+        contactClosed: false,
+        ratedCurrent: 10,
+        ratedVoltage: 24,
+        contactType: "N/O",
+      },
+      {
+        id: "lamp-linea",
+        type: "lamp",
+        label: "Baliza",
+        position: { x: 650, y: 255 },
+        active: false,
+        powerW: 20,
+        operationalState: "off",
+      },
+    ],
+    wires: [
+      { id: "wire-linea-1", from: "sensor-linea-1", to: "relay-linea" },
+      { id: "wire-linea-2", from: "sensor-linea-2", to: "relay-linea" },
+      { id: "wire-linea-3", from: "relay-linea", to: "lamp-linea" },
+    ],
+  };
+}
+
 export function useAutomationSimulator() {
   const [state, setState] = useState<AutomationState>(INITIAL_STATE);
   const [connectingFrom, setConnectingFrom] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const stateRef = useRef(state);
-  stateRef.current = state;
 
   // Loop de simulación
   useEffect(() => {
@@ -141,6 +309,13 @@ export function useAutomationSimulator() {
   const resetSimulation = useCallback(() => {
     setState(INITIAL_STATE);
     setSelectedNodeId(null);
+    setConnectingFrom(null);
+  }, []);
+
+  const loadScenario = useCallback((scenario: ScenarioKey) => {
+    setState(buildScenario(scenario));
+    setSelectedNodeId(null);
+    setConnectingFrom(null);
   }, []);
 
   const addNode = useCallback((type: NodeType, x: number, y: number) => {
@@ -289,6 +464,7 @@ export function useAutomationSimulator() {
     startSimulation,
     stopSimulation,
     resetSimulation,
+    loadScenario,
     addNode,
     moveNode,
     removeNode,

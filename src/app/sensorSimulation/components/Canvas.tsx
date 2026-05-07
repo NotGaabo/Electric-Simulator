@@ -160,7 +160,9 @@ export function Canvas({
           <p style={{ maxWidth: 280, lineHeight: 1.6 }}>
             Arrastra elementos desde la paleta.
             <br />
-            Conéctalos para simular la lógica.
+            Conectalos para simular la logica.
+            <br />
+            O lanza una escena rapida desde la barra superior.
           </p>
         </div>
       )}
@@ -180,10 +182,11 @@ export function Canvas({
             textAlign: "center",
             pointerEvents: "none",
           }}
-        >
+          >
           Click cable → nodo · Doble click → borrar
         </div>
       )}
+
     </div>
   );
 }

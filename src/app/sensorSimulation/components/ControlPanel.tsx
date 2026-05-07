@@ -1,15 +1,46 @@
 "use client";
 
 import type { CSSProperties } from "react";
+import type { AutomationNode, Wire } from "../engine/types";
+
+type ScenarioKey = "pasillo" | "bomba" | "linea";
 
 interface Props {
   running: boolean;
+  nodes: AutomationNode[];
+  wires: Wire[];
   onStart: () => void;
   onStop: () => void;
   onReset: () => void;
+  onLoadScenario: (scenario: ScenarioKey) => void;
 }
 
-export function ControlPanel({ running, onStart, onStop, onReset }: Props) {
+export function ControlPanel({
+  running,
+  nodes,
+  wires,
+  onStart,
+  onStop,
+  onReset,
+  onLoadScenario,
+}: Props) {
+  const activeNodes = nodes.filter((node) => {
+    if (node.type === "sensor") return node.motion;
+    if (node.type === "selector") return node.mode !== "OFF";
+    if (node.type === "relay") return node.contactClosed;
+    if (node.type === "contactor") return node.contactClosed;
+    if (node.type === "timer") return node.output;
+    if (node.type === "lamp") return node.active;
+    if (node.type === "motor") return node.active;
+    return false;
+  }).length;
+
+  const presets: Array<{ key: ScenarioKey; label: string }> = [
+    { key: "pasillo", label: "Pasillo" },
+    { key: "bomba", label: "Bomba" },
+    { key: "linea", label: "Baliza OR" },
+  ];
+
   const baseBtn: CSSProperties = {
     border: "1px solid #1e293b",
     background: "transparent",
@@ -48,6 +79,24 @@ export function ControlPanel({ running, onStart, onStop, onReset }: Props) {
         <div style={{ fontSize: 8, color: "#58677b" }}>
           IEC 60617 · Control &amp; lógica
         </div>
+      </div>
+
+      <div style={{ display: "flex", gap: 6, marginRight: 10, flexWrap: "wrap" }}>
+        {presets.map((preset) => (
+          <button
+            key={preset.key}
+            onClick={() => onLoadScenario(preset.key)}
+            style={{
+              ...baseBtn,
+              padding: "6px 8px",
+              borderColor: "#1e3a5f",
+              color: "#93c5fd",
+              background: "rgba(59,130,246,0.08)",
+            }}
+          >
+            ✦ {preset.label}
+          </button>
+        ))}
       </div>
 
       <button
@@ -125,6 +174,28 @@ export function ControlPanel({ running, onStart, onStop, onReset }: Props) {
       <span style={{ fontSize: 10, color: "#64748b" }}>
         {running ? "RUNNING" : "STOPPED"}
       </span>
+
+      <div style={{ marginLeft: "auto", display: "flex", gap: 6, flexWrap: "wrap" }}>
+        {[
+          { label: "NODOS", value: String(nodes.length) },
+          { label: "CABLES", value: String(wires.length) },
+          { label: "ACTIVOS", value: String(activeNodes) },
+        ].map((item) => (
+          <div
+            key={item.label}
+            style={{
+              minWidth: 62,
+              padding: "5px 8px",
+              borderRadius: 8,
+              border: "1px solid #1e293b",
+              background: "rgba(15,23,42,0.7)",
+            }}
+          >
+            <div style={{ fontSize: 8, color: "#58677b", letterSpacing: "0.08em" }}>{item.label}</div>
+            <div style={{ fontSize: 11, color: "#e2e8f0", fontWeight: 700 }}>{item.value}</div>
+          </div>
+        ))}
+      </div>
 
       <style>{`
         @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }

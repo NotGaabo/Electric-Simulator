@@ -238,6 +238,11 @@ export function StatusPanel({ nodes, selectedNodeId, onSetSensorDuration }: Prop
           | undefined)
       : undefined;
 
+  const activeLoads = [
+    ...lamps.filter((node) => node.active),
+    ...motors.filter((node) => node.type === "motor" && node.active),
+  ].length;
+
   return (
     <aside
       style={{
@@ -261,6 +266,34 @@ export function StatusPanel({ nodes, selectedNodeId, onSetSensorDuration }: Prop
         }}
       >
         Status
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+          gap: 8,
+        }}
+      >
+        {[
+          { label: "Sensores", value: String(sensors.length), accent: "#93c5fd" },
+          { label: "Timers", value: String(timers.length), accent: "#facc15" },
+          { label: "Cargas ON", value: String(activeLoads), accent: "#4ade80" },
+          { label: "Motores", value: String(motors.length), accent: "#f472b6" },
+        ].map((card) => (
+          <div
+            key={card.label}
+            style={{
+              border: "1px solid #1e293b",
+              borderRadius: 8,
+              padding: 8,
+              background: "rgba(15,23,42,0.45)",
+            }}
+          >
+            <div style={{ color: "#58677b", fontSize: 9 }}>{card.label}</div>
+            <div style={{ color: card.accent, fontSize: 16, fontWeight: 700 }}>{card.value}</div>
+          </div>
+        ))}
       </div>
 
       {selectedSensor && (
@@ -392,7 +425,7 @@ export function StatusPanel({ nodes, selectedNodeId, onSetSensorDuration }: Prop
 
       {sensors.length > 0 && !selectedSensor && (
         <p style={{ color: "#475569", fontSize: 9, fontStyle: "italic", textAlign: "center" }}>
-          Clic en un 📡 para configurar su timer
+          Clic en un sensor para configurarlo y probar pulsos
         </p>
       )}
     </aside>
