@@ -70,8 +70,10 @@ export default function AssignmentSimulatorWrapper({ module, children }: Props) 
       {assignmentId && (
         <div style={{
           position: 'fixed', zIndex: 50,
-          top: 16, right: 16,
-          display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8,
+          left: '50%', bottom: 24,
+          transform: 'translateX(-50%)',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+          pointerEvents: 'none',
         }}>
           {error && (
             <div style={{
@@ -82,7 +84,9 @@ export default function AssignmentSimulatorWrapper({ module, children }: Props) 
               fontFamily: "'Space Mono', monospace",
               fontSize: '0.65rem', letterSpacing: '0.06em',
               boxShadow: '0 4px 14px rgba(239,68,68,0.25)',
-              maxWidth: 240,
+              maxWidth: 320,
+              textAlign: 'center',
+              pointerEvents: 'auto',
             }}>
               // {error}
             </div>
@@ -103,6 +107,7 @@ export default function AssignmentSimulatorWrapper({ module, children }: Props) 
               boxShadow: '0 4px 16px rgba(22,163,74,0.35)',
               display: 'flex', alignItems: 'center', gap: 8,
               transition: 'all 0.2s',
+              pointerEvents: 'auto',
             }}
           >
             {submitting || isCapturing ? (

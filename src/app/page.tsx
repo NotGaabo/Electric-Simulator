@@ -101,20 +101,20 @@ export default function HomePage() {
           </div>
           <span className="logo-text">Voltify<span>.</span></span>
         </a>
-        <button onClick={handleGoToPanel} className="nav-btn">Open Voltify →</button>
+        <button onClick={handleGoToPanel} className="nav-btn">Abrir Voltify →</button>
       </header>
 
       <main>
         <section className="hero">
-          <div className="badge"><span className="badge-dot" />AI-powered · Circuit Simulation</div>
-          <h1 className="hero-title">Simulate circuits<br /><strong>with Voltify.</strong></h1>
-          <p className="hero-sub">An advanced AI-powered electrical simulator. Design, analyze, and understand circuits through natural language and real-time interaction.</p>
+          <div className="badge"><span className="badge-dot" />Con IA · Simulacion de circuitos</div>
+          <h1 className="hero-title">Simula circuitos<br /><strong>con Voltify.</strong></h1>
+          <p className="hero-sub">Un simulador electrico avanzado impulsado por IA. Disena, analiza y comprende circuitos mediante lenguaje natural e interaccion en tiempo real.</p>
           <div className="hero-actions">
-            <button onClick={handleGoToPanel} className="btn-primary">Launch Voltify</button>
-            <button className="btn-secondary">View Documentation</button>
+            <button onClick={handleGoToPanel} className="btn-primary">Iniciar Voltify</button>
+            <button className="btn-secondary">Ver documentacion</button>
           </div>
           <div className="circuit-visual">
-            <div className="circuit-label">// live circuit preview</div>
+            <div className="circuit-label">// vista previa del circuito</div>
             <div className="circuit-svg-wrap">
               <svg viewBox="0 0 860 200" fill="none" xmlns="http://www.w3.org/2000/svg" style={{width:'100%',height:'auto'}}>
                 <path d="M40 100 H160"  stroke="#bbf7d0" strokeWidth="2"/>
@@ -152,7 +152,7 @@ export default function HomePage() {
         </section>
 
         <div className="stats-bar">
-          {[{num:'10k+',label:'Circuit simulations'},{num:'<50ms',label:'Response latency'},{num:'200+',label:'Component types'},{num:'99.9%',label:'Uptime SLA'}].map((s,i)=>(
+          {[{num:'10k+',label:'Simulaciones de circuitos'},{num:'<50ms',label:'Latencia de respuesta'},{num:'200+',label:'Tipos de componentes'},{num:'99.9%',label:'Disponibilidad SLA'}].map((s,i)=>(
             <div key={i} className="stat-item">
               <span className="stat-num">{s.num}</span>
               <span className="stat-label">{s.label}</span>
@@ -161,16 +161,16 @@ export default function HomePage() {
         </div>
 
         <section className="features">
-          <div className="section-label">// capabilities</div>
-          <h2 className="section-title">Everything you need to simulate</h2>
+          <div className="section-label">// capacidades</div>
+          <h2 className="section-title">Todo lo que necesitas para simular</h2>
           <div className="features-grid">
             {[
-              {title:'Natural Language Interface',desc:'Describe your circuit in plain English. Our LLM translates your intent into precise component configurations.',icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>},
-              {title:'Real-time Analysis',desc:'Instantaneous voltage, current, and power calculations across every node as you build.',icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>},
-              {title:'Component Library',desc:'Resistors, capacitors, inductors, op-amps, transistors — a full library of 200+ passive and active components.',icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round"><rect x="2" y="3" width="7" height="7"/><rect x="15" y="3" width="7" height="7"/><rect x="15" y="15" width="7" height="7"/><rect x="2" y="15" width="7" height="7"/></svg>},
-              {title:'SPICE-Compatible Export',desc:'Export your simulations to standard SPICE netlist format compatible with LTspice, ngspice, and more.',icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>},
-              {title:'AI Circuit Diagnosis',desc:"Ask why your circuit isn't working. The AI explains faults, suggests fixes, and simulates the corrected version.",icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>},
-              {title:'Collaborative Workspace',desc:'Share circuits with your team in real-time. Built for educators, students, and professional engineers.',icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>},
+              {title:'Interfaz en lenguaje natural',desc:'Describe tu circuito de forma simple. Nuestro modelo interpreta tu intencion y la convierte en configuraciones precisas de componentes.',icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>},
+              {title:'Analisis en tiempo real',desc:'Calculos instantaneos de voltaje, corriente y potencia en cada nodo mientras construyes.',icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>},
+              {title:'Biblioteca de componentes',desc:'Resistencias, capacitores, inductores, amplificadores operacionales y transistores en una biblioteca con mas de 200 componentes pasivos y activos.',icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round"><rect x="2" y="3" width="7" height="7"/><rect x="15" y="3" width="7" height="7"/><rect x="15" y="15" width="7" height="7"/><rect x="2" y="15" width="7" height="7"/></svg>},
+              {title:'Exportacion compatible con SPICE',desc:'Exporta tus simulaciones en formato netlist estandar compatible con LTspice, ngspice y otras herramientas.',icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>},
+              {title:'Diagnostico de circuitos con IA',desc:'Pregunta por que tu circuito no funciona. La IA explica fallas, propone correcciones y simula la version ajustada.',icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>},
+              {title:'Espacio de trabajo colaborativo',desc:'Comparte circuitos con tu equipo en tiempo real. Pensado para docentes, estudiantes e ingenieros.',icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>},
             ].map((f,i)=>(
               <div key={i} className="feature-card">
                 <div className="feature-icon">{f.icon}</div>
@@ -182,14 +182,14 @@ export default function HomePage() {
         </section>
 
         <section className="cta-section">
-          <h2 className="cta-title">Start simulating<br /><strong>right now.</strong></h2>
-          <p className="cta-sub">No installation required. Open the simulator and build your first circuit in under a minute.</p>
-          <button onClick={handleGoToPanel} className="btn-primary" style={{fontSize:'16px',padding:'16px 44px'}}>Launch Voltify Simulator</button>
+          <h2 className="cta-title">Empieza a simular<br /><strong>ahora mismo.</strong></h2>
+          <p className="cta-sub">No necesitas instalar nada. Abre el simulador y crea tu primer circuito en menos de un minuto.</p>
+          <button onClick={handleGoToPanel} className="btn-primary" style={{fontSize:'16px',padding:'16px 44px'}}>Abrir simulador Voltify</button>
         </section>
       </main>
 
       <footer>
-        <span className="footer-text">© 2026 Voltify. All rights reserved.</span>
+        <span className="footer-text">© 2026 Voltify. Todos los derechos reservados.</span>
         <span className="footer-mono">v2.0 · LMS</span>
       </footer>
     </>

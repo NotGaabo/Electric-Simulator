@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { getAppBaseUrl } from '@/lib/app-url'
 import { createClient } from '@/lib/supabase/server'
 
 const DEFAULT_NEXT_PATH = '/mis-clases'
@@ -25,15 +26,7 @@ export async function GET(request: Request) {
     next = DEFAULT_NEXT_PATH
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
-  const origin = siteUrl
-    ? siteUrl.replace(/\/$/, '')
-    : requestUrl.origin
-
-  // 👇 Debug temporal
-  console.log('📍 origin resuelto:', origin)
-  console.log('🔑 code recibido:', code)
-  console.log('🍪 cookies:', request.headers.get('cookie'))
+  const origin = getAppBaseUrl(requestUrl.origin)
 
   if (authError) {
     return buildErrorRedirect(origin, next, 'El enlace de autenticacion no es valido o ya vencio.')
@@ -45,9 +38,6 @@ export async function GET(request: Request) {
 
   const supabase = await createClient()
   const { error } = await supabase.auth.exchangeCodeForSession(code)
-
-  // 👇 Debug temporal
-  console.log('❌ exchange error:', JSON.stringify(error))
 
   if (error) {
     return buildErrorRedirect(origin, next, 'No se pudo completar la autenticacion. Pide un enlace nuevo.')
